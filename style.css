@@ -222,13 +222,13 @@ img.stat-icon {
     filter: brightness(0) saturate(100%) invert(1);
 }
 
-/* Active navigation item - use primary color (red #E02424) */
+/* Active navigation item - keep icons black on red background */
 .nav-item.active img {
-    filter: brightness(0) saturate(100%) invert(21%) sepia(93%) saturate(4567%) hue-rotate(350deg) brightness(93%) contrast(93%);
+    filter: brightness(0) saturate(100%);
 }
 
 [data-theme="dark"] .nav-item.active img {
-    filter: brightness(0) saturate(100%) invert(21%) sepia(93%) saturate(4567%) hue-rotate(350deg) brightness(93%) contrast(93%);
+    filter: brightness(0) saturate(100%);
 }
 
 /* Theme toggle icon - opposite of text color */

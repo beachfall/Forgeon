@@ -113,6 +113,14 @@ ul {
     color: var(--text-primary);
 }
 
+.app-logo {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    /* Prevent theme filters from affecting the logo */
+    filter: none !important;
+}
+
 .theme-toggle {
     width: 40px;
     height: 40px;

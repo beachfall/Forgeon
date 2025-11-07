@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Forgeon - Organize your game development projects">
+    <title>Forgeon</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- JSZip Library for ZIP Archive Export/Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <!-- App Container -->
+    <div class="app-container">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" role="navigation" aria-label="Main navigation">
+            <div class="sidebar-header">
+                <h1 class="app-title">Forgeon</h1>
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+                    <img src="icons/theme/moon.svg" alt="" class="theme-icon" width="24" height="24">
+                </button>
+            </div>
+            
+            <nav class="nav-menu">
+                <ul class="nav-list">
+                    <li>
+                        <button class="nav-item active" data-section="dashboard" aria-current="page">
+                            <img src="icons/navigation/dashboard.svg" alt="" class="nav-icon" width="20" height="20">
+                            <span class="nav-text">Dashboard</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" data-section="tasks">
+                            <img src="icons/navigation/tasks.svg" alt="" class="nav-icon" width="20" height="20">
+                            <span class="nav-text">Tasks</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" data-section="assets">
+                            <img src="icons/navigation/assets.svg" alt="" class="nav-icon" width="20" height="20">
+                            <span class="nav-text">Assets</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" data-section="milestones">
+                            <img src="icons/navigation/milestones.svg" alt="" class="nav-icon" width="20" height="20">
+                            <span class="nav-text">Milestones</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" data-section="classes">
+                            <img src="icons/navigation/classes.svg" alt="" class="nav-icon" width="20" height="20">
+                            <span class="nav-text">Classes</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" data-section="mechanics">
+                            <img src="icons/navigation/mechanics.svg" alt="" class="nav-icon" width="20" height="20">
+                            <span class="nav-text">Mechanics</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" data-section="story">
+                            <img src="icons/navigation/story.svg" alt="" class="nav-icon" width="20" height="20">
+                            <span class="nav-text">Story</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-item" data-section="notes">
+                            <img src="icons/navigation/notes.svg" alt="" class="nav-icon" width="20" height="20">
+                            <span class="nav-text">Notes</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content" role="main">
+            
+            <!-- Global Search Bar -->
+            <div class="global-search">
+                <div class="search-container">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search tasks, assets, milestones..." aria-label="Search">
+                    <button id="clearSearchBtn" class="search-clear-btn" aria-label="Clear search">×</button>
+                </div>
+                <div class="data-actions">
+                    <button class="btn btn-secondary" id="exportDataBtn" title="Export all data and files as ZIP">
+                        <img src="icons/actions/export.svg" alt="" width="16" height="16">
+                        <span>Export ZIP</span>
+                    </button>
+                    <button class="btn btn-secondary" id="importDataBtn" title="Import ZIP backup or legacy JSON">
+                        <img src="icons/actions/import.svg" alt="" width="16" height="16">
+                        <span>Import</span>
+                    </button>
+                    <input type="file" id="importFileInput" accept=".zip,.json" style="display: none;">
+                </div>
+            </div>
+            
+            <!-- Search Results -->
+            <div id="searchResults" class="search-results" style="display: none;"></div>
+            
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <header class="section-header">
+                    <h2>Dashboard</h2>
+                    <p class="section-description">Overview of your game development project</p>
+                </header>
+                
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <img src="icons/navigation/tasks.svg" alt="" class="stat-icon" width="32" height="32">
+                        <div class="stat-content">
+                            <h3 class="stat-label">Active Tasks</h3>
+                            <p class="stat-value" id="activeTasks">0</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <img src="icons/navigation/assets.svg" alt="" class="stat-icon" width="32" height="32">
+                        <div class="stat-content">
+                            <h3 class="stat-label">Total Assets</h3>
+                            <p class="stat-value" id="totalAssets">0</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <img src="icons/navigation/milestones.svg" alt="" class="stat-icon" width="32" height="32">
+                        <div class="stat-content">
+                            <h3 class="stat-label">Milestones</h3>
+                            <p class="stat-value" id="totalMilestones">0</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <img src="icons/misc/progress.svg" alt="" class="stat-icon" width="32" height="32">
+                        <div class="stat-content">
+                            <h3 class="stat-label">Progress</h3>
+                            <p class="stat-value" id="overallProgress">0%</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-overview">
+                    <div class="overview-card">
+                        <h3>Recent Tasks</h3>
+                        <ul id="recentTasksList" class="overview-list"></ul>
+                    </div>
+                    
+                    <div class="overview-card">
+                        <h3>Upcoming Milestones</h3>
+                        <ul id="upcomingMilestonesList" class="overview-list"></ul>
+                    </div>
+                    
+                    <div class="overview-card" id="productivityStats">
+                        <h3>Productivity Overview</h3>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tasks Section -->
+            <section id="tasks" class="content-section">
+                <header class="section-header">
+                    <h2>Tasks</h2>
+                    <button class="btn btn-primary" id="addTaskBtn">+ Add Task</button>
+                </header>
+                
+                <div class="task-controls">
+                    <div class="filters">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="active">Active</button>
+                        <button class="filter-btn" data-filter="completed">Completed</button>
+                    </div>
+                    <div class="sort-controls">
+                        <label for="taskSortBy">Sort by:</label>
+                        <select id="taskSortBy" class="sort-select">
+                            <option value="createdAt">Date Created</option>
+                            <option value="priority">Priority</option>
+                            <option value="dueDate">Due Date</option>
+                            <option value="title">Title</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="tasksList" class="items-container"></div>
+            </section>
+
+            <!-- Assets Section -->
+            <section id="assets" class="content-section">
+                <header class="section-header">
+                    <h2>Assets</h2>
+                    <button class="btn btn-primary" id="addAssetBtn">+ Add Asset</button>
+                </header>
+                
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="image">Images</button>
+                    <button class="filter-btn" data-filter="audio">Audio</button>
+                    <button class="filter-btn" data-filter="video">Video</button>
+                    <button class="filter-btn" data-filter="model">3D Models</button>
+                    <button class="filter-btn" data-filter="document">Documents</button>
+                    <button class="filter-btn" data-filter="script">Scripts</button>
+                    <button class="filter-btn" data-filter="other">Other</button>
+                </div>
+                
+                <div id="assetsList" class="items-container"></div>
+            </section>
+
+            <!-- Milestones Section -->
+            <section id="milestones" class="content-section">
+                <header class="section-header">
+                    <h2>Milestones</h2>
+                    <button class="btn btn-primary" id="addMilestoneBtn">+ Add Milestone</button>
+                </header>
+                
+                <div id="milestonesList" class="milestones-container"></div>
+            </section>
+
+            <!-- Classes Section -->
+            <section id="classes" class="content-section">
+                <header class="section-header">
+                    <h2>Classes & Objects</h2>
+                    <button class="btn btn-primary" id="addClassBtn">+ Add Class</button>
+                </header>
+                <p class="section-description">Define your game's class hierarchy with parent and child relationships</p>
+                
+                <div id="classesList" class="classes-container"></div>
+            </section>
+
+            <!-- Game Mechanics Section -->
+            <section id="mechanics" class="content-section">
+                <header class="section-header">
+                    <h2>Game Mechanics</h2>
+                    <button class="btn btn-primary" id="addMechanicBtn">+ Add Mechanic</button>
+                </header>
+                <p class="section-description">Document your game's mechanics and systems</p>
+                
+                <div id="mechanicsList" class="mechanics-container"></div>
+            </section>
+
+            <!-- Story Section -->
+            <section id="story" class="content-section">
+                <header class="section-header">
+                    <h2>Story & Narrative</h2>
+                    <button class="btn btn-primary" id="addActBtn">+ Add Act</button>
+                </header>
+                <p class="section-description">Organize your game's narrative into acts and scenes</p>
+                
+                <div id="storyList" class="story-container"></div>
+            </section>
+
+            <!-- Notes Section -->
+            <section id="notes" class="content-section">
+                <header class="section-header">
+                    <h2>Notes</h2>
+                    <button class="btn btn-primary" id="saveNotesBtn">Save Notes</button>
+                </header>
+                
+                <div class="notes-editor">
+                    <textarea 
+                        id="notesTextarea" 
+                        class="notes-textarea" 
+                        placeholder="Write your game development ideas, notes, and documentation here...&#10;&#10;You can use:&#10;# Headings&#10;- Bullet points&#10;**Bold text**&#10;*Italic text*"
+                        aria-label="Notes editor"
+                    ></textarea>
+                    <div id="notesPreview" class="notes-preview"></div>
+                </div>
+                
+                <div class="notes-controls">
+                    <button class="btn" id="togglePreviewBtn">Toggle Preview</button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modal Container (for forms) -->
+    <div id="modalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose" aria-label="Close modal">&times;</button>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

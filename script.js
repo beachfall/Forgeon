@@ -873,7 +873,7 @@ const AssetTracker = {
                         <img src="${asset.thumbnail}" alt="${Utils.escapeHtml(asset.name)}">
                     </div>
                 ` : `
-                    <div class="asset-icon" onclick="${asset.hasFile ? `AssetTracker.previewAsset('${asset.id}')` : ''}">${typeIcons[asset.type] || '📦'}</div>
+                    <div class="asset-icon" onclick="${asset.hasFile ? `AssetTracker.previewAsset('${asset.id}')` : ''}">${typeIcons[asset.type] || Utils.icon('misc/package', 'small')}</div>
                 `}
                 
                 <div class="item-content">
@@ -929,7 +929,7 @@ const AssetTracker = {
             } else if (file.type.startsWith('audio/')) {
                 previewHtml = `
                     <div class="preview-container">
-                        <h3>🎵 ${Utils.escapeHtml(asset.name)}</h3>
+                        <h3>${Utils.icon('misc/music-note', 'small')} ${Utils.escapeHtml(asset.name)}</h3>
                         <div class="audio-preview">
                             <audio controls autoplay style="width: 100%; margin: 2rem 0;">
                                 <source src="${fileURL}" type="${file.type}">
@@ -946,7 +946,7 @@ const AssetTracker = {
             } else if (file.type.startsWith('video/')) {
                 previewHtml = `
                     <div class="preview-container">
-                        <h3>🎬 ${Utils.escapeHtml(asset.name)}</h3>
+                        <h3>${Utils.icon('misc/video', 'small')} ${Utils.escapeHtml(asset.name)}</h3>
                         <div class="video-preview">
                             <video controls style="max-width: 100%; max-height: 60vh;">
                                 <source src="${fileURL}" type="${file.type}">
@@ -962,7 +962,7 @@ const AssetTracker = {
             } else if (file.type === 'application/pdf') {
                 previewHtml = `
                     <div class="preview-container">
-                        <h3>📄 ${Utils.escapeHtml(asset.name)}</h3>
+                        <h3>${Utils.icon('misc/document', 'small')} ${Utils.escapeHtml(asset.name)}</h3>
                         <div class="pdf-preview">
                             <iframe src="${fileURL}" style="width: 100%; height: 70vh; border: none;"></iframe>
                         </div>
@@ -982,7 +982,7 @@ const AssetTracker = {
                         
                         previewHtml = `
                             <div class="preview-container">
-                                <h3>📄 ${Utils.escapeHtml(asset.name)}</h3>
+                                <h3>${Utils.icon('misc/document', 'small')} ${Utils.escapeHtml(asset.name)}</h3>
                                 <div class="document-preview-controls">
                                     <button class="zoom-btn" onclick="AssetTracker.zoomDocument(-0.1)" title="Zoom Out">
                                         <img src="icons/actions/zoom-out.svg" alt="Zoom Out" width="20" height="20">
@@ -1012,7 +1012,7 @@ const AssetTracker = {
             } else {
                 previewHtml = `
                     <div class="preview-container">
-                        <h3>📦 ${Utils.escapeHtml(asset.name)}</h3>
+                        <h3>${Utils.icon('misc/package', 'small')} ${Utils.escapeHtml(asset.name)}</h3>
                         <div class="file-info">
                             <p>Preview not available for this file type.</p>
                             <p><strong>Type:</strong> ${file.type || 'Unknown'}</p>
@@ -1442,14 +1442,14 @@ const MechanicsManager = {
         });
         
         const categoryIcons = {
-            movement: '🏃',
-            combat: '⚔️',
-            ui: '🖥️',
-            gameplay: '🎮',
-            ai: '🤖',
-            physics: '🌍',
-            audio: '🔊',
-            other: '📦'
+            movement: Utils.icon('misc/movement', 'small'),
+            combat: Utils.icon('misc/combat', 'small'),
+            ui: Utils.icon('misc/ui', 'small'),
+            gameplay: Utils.icon('misc/gameplay', 'small'),
+            ai: Utils.icon('misc/ai', 'small'),
+            physics: Utils.icon('misc/physics', 'small'),
+            audio: Utils.icon('misc/audio-wave', 'small'),
+            other: Utils.icon('misc/package', 'small')
         };
         
         const categoryNames = {
@@ -1921,8 +1921,8 @@ const StoryManager = {
                                         </div>
                                     </div>
                                     ${scene.description ? `<p class="scene-description">${Utils.escapeHtml(scene.description)}</p>` : ''}
-                                    ${scene.location ? `<div class="scene-meta"><strong>📍 Location:</strong> ${Utils.escapeHtml(scene.location)}</div>` : ''}
-                                    ${scene.characters.length > 0 ? `<div class="scene-meta"><strong>👥 Characters:</strong> ${scene.characters.map(c => `<span class="character-tag">${Utils.escapeHtml(c)}</span>`).join(' ')}</div>` : ''}
+                                    ${scene.location ? `<div class="scene-meta"><strong>${Utils.icon('story/location', 'small')} Location:</strong> ${Utils.escapeHtml(scene.location)}</div>` : ''}
+                                    ${scene.characters.length > 0 ? `<div class="scene-meta"><strong>${Utils.icon('story/characters', 'small')} Characters:</strong> ${scene.characters.map(c => `<span class="character-tag">${Utils.escapeHtml(c)}</span>`).join(' ')}</div>` : ''}
                                     ${scene.dialogue ? `
                                         <details class="scene-dialogue">
                                             <summary>Dialogue/Notes</summary>
@@ -2171,7 +2171,7 @@ const Search = {
         if (results.assets.length > 0) {
             const items = results.assets.map(a => `
                 <div class="search-item" data-type="asset" data-id="${a.id}">
-                    <span class="search-icon">🎨</span>
+                    <span class="search-icon">${Utils.icon('asset/art', 'small')}</span>
                     <div class="search-item-content">
                         <div class="search-item-title">${Utils.escapeHtml(a.name)}</div>
                         <div class="search-item-desc">${Utils.escapeHtml(a.type || '')}${a.fileName ? ` • ${Utils.escapeHtml(a.fileName)}` : ''}</div>
@@ -2184,7 +2184,7 @@ const Search = {
         if (results.milestones.length > 0) {
             const items = results.milestones.map(m => `
                 <div class="search-item" data-type="milestone" data-id="${m.id}">
-                    <span class="search-icon">🎯</span>
+                    <span class="search-icon">${Utils.icon('navigation/milestones', 'small')}</span>
                     <div class="search-item-content">
                         <div class="search-item-title">${Utils.escapeHtml(m.title)}</div>
                         ${m.dueDate ? `<div class="search-item-desc">Due: ${Utils.formatDate(m.dueDate)}</div>` : ''}
@@ -2197,7 +2197,7 @@ const Search = {
         if (results.classes.length > 0) {
             const items = results.classes.map(c => `
                 <div class="search-item" data-type="class" data-id="${c.id}">
-                    <span class="search-icon">🏷️</span>
+                    <span class="search-icon">${Utils.icon('navigation/classes', 'small')}</span>
                     <div class="search-item-content">
                         <div class="search-item-title">${Utils.escapeHtml(c.name)}</div>
                         ${c.description ? `<div class="search-item-desc">${Utils.escapeHtml((c.description || '').substring(0, 120))}${(c.description || '').length > 120 ? '...' : ''}</div>` : ''}
@@ -2210,7 +2210,7 @@ const Search = {
         if (results.mechanics.length > 0) {
             const items = results.mechanics.map(mec => `
                 <div class="search-item" data-type="mechanic" data-id="${mec.id}">
-                    <span class="search-icon">⚙️</span>
+                    <span class="search-icon">${Utils.icon('navigation/mechanics', 'small')}</span>
                     <div class="search-item-content">
                         <div class="search-item-title">${Utils.escapeHtml(mec.name)}</div>
                         ${mec.category ? `<div class="search-item-desc">${Utils.escapeHtml(mec.category)}</div>` : ''}
@@ -2223,7 +2223,7 @@ const Search = {
         if (results.acts.length > 0) {
             const items = results.acts.map(a => `
                 <div class="search-item" data-type="act" data-id="${a.id}">
-                    <span class="search-icon">🎭</span>
+                    <span class="search-icon">${Utils.icon('navigation/story', 'small')}</span>
                     <div class="search-item-content">
                         <div class="search-item-title">${Utils.escapeHtml(a.title)}</div>
                         ${a.description ? `<div class="search-item-desc">${Utils.escapeHtml((a.description || '').substring(0, 120))}${(a.description || '').length > 120 ? '...' : ''}</div>` : ''}
@@ -2236,7 +2236,7 @@ const Search = {
         if (results.scenes.length > 0) {
             const items = results.scenes.map(s => `
                 <div class="search-item" data-type="scene" data-act-id="${s.actId}" data-id="${s.scene.id}">
-                    <span class="search-icon">📜</span>
+                    <span class="search-icon">${Utils.icon('misc/scroll', 'small')}</span>
                     <div class="search-item-content">
                         <div class="search-item-title">${Utils.escapeHtml(s.scene.title)} <small style="opacity:0.7;">in ${Utils.escapeHtml(s.actTitle || '')}</small></div>
                         ${s.scene.description ? `<div class="search-item-desc">${Utils.escapeHtml((s.scene.description || '').substring(0, 120))}${(s.scene.description || '').length > 120 ? '...' : ''}</div>` : ''}
@@ -2250,7 +2250,7 @@ const Search = {
             const notePreview = Utils.escapeHtml((AppState.notes || '').substring(0, 200));
             const items = `
                 <div class="search-item" data-type="notes">
-                    <span class="search-icon">📝</span>
+                    <span class="search-icon">${Utils.icon('navigation/notes', 'small')}</span>
                     <div class="search-item-content">
                         <div class="search-item-title">Notes</div>
                         <div class="search-item-desc">${notePreview}${(AppState.notes || '').length > 200 ? '...' : ''}</div>

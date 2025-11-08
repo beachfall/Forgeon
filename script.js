@@ -971,6 +971,44 @@ const AssetTracker = {
                         </div>
                     </div>
                 `;
+            } else if (this.isTextDocument(file.type, asset.fileName)) {
+                // Text-based documents and scripts
+                const reader = new FileReader();
+                await new Promise((resolve) => {
+                    reader.onload = async (e) => {
+                        const content = e.target.result;
+                        const extension = asset.fileName.split('.').pop().toLowerCase();
+                        const language = this.getLanguageForFile(extension);
+                        
+                        previewHtml = `
+                            <div class="preview-container">
+                                <h3>📄 ${Utils.escapeHtml(asset.name)}</h3>
+                                <div class="document-preview-controls">
+                                    <button class="zoom-btn" onclick="AssetTracker.zoomDocument(-0.1)" title="Zoom Out">
+                                        <img src="icons/actions/zoom-out.svg" alt="Zoom Out" width="20" height="20">
+                                    </button>
+                                    <span class="zoom-level">100%</span>
+                                    <button class="zoom-btn" onclick="AssetTracker.zoomDocument(0.1)" title="Zoom In">
+                                        <img src="icons/actions/zoom-in.svg" alt="Zoom In" width="20" height="20">
+                                    </button>
+                                    <button class="zoom-btn" onclick="AssetTracker.resetZoom()" title="Reset Zoom">
+                                        <img src="icons/actions/reset.svg" alt="Reset" width="20" height="20">
+                                    </button>
+                                </div>
+                                <div class="document-preview" id="documentPreview">
+                                    <pre style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 8px; overflow: auto; max-height: 60vh; font-family: 'Courier New', monospace; line-height: 1.5; transition: font-size 0.2s ease;" id="documentPreviewContent"><code class="language-${language}">${Utils.escapeHtml(content)}</code></pre>
+                                </div>
+                                <div class="preview-info">
+                                    <p><strong>Type:</strong> ${extension.toUpperCase()} ${language ? `(${language})` : ''}</p>
+                                    <p><strong>Size:</strong> ${FileStorage.formatFileSize(file.size)}</p>
+                                    <p><strong>Lines:</strong> ${content.split('\n').length}</p>
+                                </div>
+                            </div>
+                        `;
+                        resolve();
+                    };
+                    reader.readAsText(file);
+                });
             } else {
                 previewHtml = `
                     <div class="preview-container">
@@ -979,7 +1017,7 @@ const AssetTracker = {
                             <p>Preview not available for this file type.</p>
                             <p><strong>Type:</strong> ${file.type || 'Unknown'}</p>
                             <p><strong>Size:</strong> ${FileStorage.formatFileSize(file.size)}</p>
-                            <button class="btn btn-primary" onclick="AssetTracker.downloadAsset('${assetId}')">⬇️ Download File</button>
+                            <button class="btn btn-primary" onclick="AssetTracker.downloadAsset('${assetId}')">${Utils.icon('actions/download', 'small')} Download File</button>
                         </div>
                     </div>
                 `;
@@ -999,6 +1037,66 @@ const AssetTracker = {
             console.error('Error previewing asset:', error);
             alert('Error loading file preview');
         }
+    },
+    
+    isTextDocument(mimeType, fileName) {
+        if (!fileName) return false;
+        const extension = fileName.split('.').pop().toLowerCase();
+        const textExtensions = [
+            'txt', 'md', 'json', 'xml', 'csv', 'log',
+            'js', 'ts', 'jsx', 'tsx', 'html', 'css', 'scss', 'sass',
+            'c', 'cpp', 'h', 'hpp', 'cs', 'java', 'py', 'rb', 'php',
+            'go', 'rs', 'swift', 'kt', 'sh', 'bat', 'ps1',
+            'sql', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf'
+        ];
+        return textExtensions.includes(extension) || 
+               mimeType?.startsWith('text/') || 
+               mimeType === 'application/json' ||
+               mimeType === 'application/xml';
+    },
+    
+    getLanguageForFile(extension) {
+        const languageMap = {
+            'js': 'javascript', 'jsx': 'javascript', 'ts': 'typescript', 'tsx': 'typescript',
+            'html': 'html', 'htm': 'html', 'xml': 'xml',
+            'css': 'css', 'scss': 'scss', 'sass': 'sass',
+            'json': 'json', 'md': 'markdown',
+            'py': 'python', 'rb': 'ruby', 'php': 'php',
+            'java': 'java', 'c': 'c', 'cpp': 'cpp', 'cs': 'csharp',
+            'go': 'go', 'rs': 'rust', 'swift': 'swift', 'kt': 'kotlin',
+            'sh': 'bash', 'bat': 'batch', 'ps1': 'powershell',
+            'sql': 'sql', 'yaml': 'yaml', 'yml': 'yaml'
+        };
+        return languageMap[extension.toLowerCase()] || 'plaintext';
+    },
+    
+    zoomDocument(delta) {
+        const preview = document.querySelector('#documentPreviewContent');
+        const zoomLevel = document.querySelector('.zoom-level');
+        if (!preview || !zoomLevel) return;
+        
+        // Get current font size or default to 0.9rem (14.4px)
+        const currentFontSize = parseFloat(window.getComputedStyle(preview).fontSize);
+        const baseFontSize = 14.4; // 0.9rem at 16px base
+        
+        // Calculate current scale
+        const currentScale = currentFontSize / baseFontSize;
+        
+        // Calculate new scale (min 0.5, max 3.0)
+        const newScale = Math.max(0.5, Math.min(3.0, currentScale + delta));
+        
+        // Apply new font size
+        preview.style.fontSize = `${baseFontSize * newScale}px`;
+        zoomLevel.textContent = `${Math.round(newScale * 100)}%`;
+    },
+    
+    resetZoom() {
+        const preview = document.querySelector('#documentPreviewContent');
+        const zoomLevel = document.querySelector('.zoom-level');
+        if (!preview || !zoomLevel) return;
+        
+        preview.style.fontSize = '0.9rem';
+        zoomLevel.textContent = '100%';
     },
     
     async downloadAsset(assetId) {

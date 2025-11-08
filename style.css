@@ -1267,6 +1267,56 @@ img.stat-icon {
     align-items: center;
 }
 
+.document-preview-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    justify-content: center;
+}
+
+.zoom-btn {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.zoom-btn:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.zoom-btn:hover img {
+    filter: brightness(0) saturate(100%) invert(100%);
+}
+
+.zoom-btn img {
+    display: block;
+    filter: var(--icon-filter);
+}
+
+.zoom-level {
+    min-width: 4rem;
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.document-preview {
+    overflow: auto;
+    border-radius: 8px;
+}
+
 .preview-info {
     margin-top: 1.5rem;
     padding-top: 1.5rem;

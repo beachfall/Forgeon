@@ -22,6 +22,16 @@
                 </button>
             </div>
             
+            <!-- Project Selector -->
+            <div class="project-selector-container">
+                <select id="projectSelector" class="project-selector" aria-label="Select project">
+                    <option>Loading...</option>
+                </select>
+                <button class="project-menu-btn" id="projectMenuBtn" title="Project Menu">
+                    <img src="icons/navigation/settings.svg" alt="" width="20" height="20">
+                </button>
+            </div>
+            
             <nav class="nav-menu">
                 <ul class="nav-list">
                     <li>
@@ -82,15 +92,25 @@
             <!-- Global Search Bar -->
             <div class="global-search">
                 <div class="search-container">
-                    <input type="text" id="searchInput" class="search-input" placeholder="Search tasks, assets, milestones..." aria-label="Search">
-                    <button id="clearSearchBtn" class="search-clear-btn" aria-label="Clear search">×</button>
+                    <div class="search-input-wrapper">
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search across all sections..." aria-label="Search">
+                        <button id="clearSearchBtn" class="search-clear-btn" aria-label="Clear search">×</button>
+                    </div>
                 </div>
                 <div class="data-actions">
+                    <button class="btn btn-secondary" id="exportDocumentationBtn" title="Export formatted documentation as HTML">
+                        <img src="icons/actions/export.svg" alt="" width="16" height="16">
+                        <span>Export Docs</span>
+                    </button>
+                    <button class="btn btn-secondary" id="exportJSONBtn" title="Export game design as JSON (no files)">
+                        <img src="icons/actions/export.svg" alt="" width="16" height="16">
+                        <span>Export JSON</span>
+                    </button>
                     <button class="btn btn-secondary" id="exportDataBtn" title="Export all data and files as ZIP">
                         <img src="icons/actions/export.svg" alt="" width="16" height="16">
                         <span>Export ZIP</span>
                     </button>
-                    <button class="btn btn-secondary" id="importDataBtn" title="Import ZIP backup or legacy JSON">
+                    <button class="btn btn-secondary" id="importDataBtn" title="Import backup (ZIP or JSON)">
                         <img src="icons/actions/import.svg" alt="" width="16" height="16">
                         <span>Import</span>
                     </button>
@@ -134,6 +154,32 @@
                     </div>
                     
                     <div class="stat-card">
+                        <img src="icons/navigation/notes.svg" alt="" class="stat-icon" width="32" height="32">
+                        <div class="stat-content">
+                            <h3 class="stat-label">Notes</h3>
+                            <p class="stat-value" id="totalNotes">0</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card reminder-widget" id="reminderWidget" onclick="Navigation.navigateTo('notes')" style="cursor: pointer;">
+                        <img src="icons/misc/clock.svg" alt="" class="stat-icon" width="32" height="32">
+                        <div class="stat-content">
+                            <h3 class="stat-label">Upcoming Reminders</h3>
+                            <div class="reminder-widget-stats">
+                                <span class="reminder-stat overdue">
+                                    <strong id="remindersOverdue">0</strong> Overdue
+                                </span>
+                                <span class="reminder-stat today">
+                                    <strong id="remindersToday">0</strong> Today
+                                </span>
+                                <span class="reminder-stat week">
+                                    <strong id="remindersWeek">0</strong> This Week
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
                         <img src="icons/misc/progress.svg" alt="" class="stat-icon" width="32" height="32">
                         <div class="stat-content">
                             <h3 class="stat-label">Progress</h3>
@@ -155,6 +201,22 @@
                     
                     <div class="overview-card" id="productivityStats">
                         <h3>Productivity Overview</h3>
+                    </div>
+                    
+                    <div class="overview-card calendar-card" id="reminderCalendar">
+                        <div class="calendar-header">
+                            <h3>Reminder Calendar</h3>
+                            <div class="calendar-nav">
+                                <button class="btn-icon" id="calendarPrevMonth" title="Previous Month">
+                                    <img src="icons/actions/chevron-left.svg" alt="" width="16" height="16">
+                                </button>
+                                <span id="calendarMonthYear">November 2025</span>
+                                <button class="btn-icon" id="calendarNextMonth" title="Next Month">
+                                    <img src="icons/actions/chevron-right.svg" alt="" width="16" height="16">
+                                </button>
+                            </div>
+                        </div>
+                        <div id="calendarGrid" class="calendar-grid"></div>
                     </div>
                 </div>
             </section>
@@ -190,7 +252,10 @@
             <section id="assets" class="content-section">
                 <header class="section-header">
                     <h2>Assets</h2>
-                    <button class="btn btn-primary" id="addAssetBtn">+ Add Asset</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" id="exportAssetsBtn">Export Assets</button>
+                        <button class="btn btn-primary" id="addAssetBtn">+ Add Asset</button>
+                    </div>
                 </header>
                 
                 <div class="filters">
@@ -221,8 +286,39 @@
             <section id="classes" class="content-section">
                 <header class="section-header">
                     <h2>Classes & Objects</h2>
-                    <button class="btn btn-primary" id="addClassBtn">+ Add Class</button>
+                    <div class="section-header-actions">
+                        <button class="btn btn-secondary" id="classesBulkModeBtn" onclick="BulkOperations.toggleBulkMode('classes')">
+                            <img src="icons/misc/checklist.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                            <span>Bulk Edit</span>
+                        </button>
+                        <button class="btn btn-secondary" id="browseClassTemplatesBtn" onclick="TemplateManager.openTemplateBrowser('class')">
+                            <img src="icons/misc/book-library.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                            <span>Templates</span>
+                        </button>
+                        <button class="btn btn-accent" id="compareClassesBtn">
+                            <img src="icons/misc/scales-balance.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                            Compare Classes
+                        </button>
+                        <button class="btn btn-secondary" id="balanceTestBtn">
+                            <img src="icons/misc/scales-balance.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                            Balance Test
+                        </button>
+                        <button class="btn btn-primary" id="addClassBtn">+ Add Class</button>
+                    </div>
                 </header>
+                
+                <div class="class-filter-bar">
+                    <label>Show:</label>
+                    <button class="class-filter-btn active" id="classFilterAll">All Classes</button>
+                    <button class="class-filter-btn" id="classFilterCharacter">
+                        <img src="icons/misc/user.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        Character Classes
+                    </button>
+                    <button class="class-filter-btn" id="classFilterInstance">
+                        <img src="icons/navigation/mechanics.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        Instance Classes
+                    </button>
+                </div>
                 <p class="section-description">Define your game's class hierarchy with parent and child relationships</p>
                 
                 <div id="classesList" class="classes-container"></div>
@@ -232,9 +328,78 @@
             <section id="mechanics" class="content-section">
                 <header class="section-header">
                     <h2>Game Mechanics</h2>
-                    <button class="btn btn-primary" id="addMechanicBtn">+ Add Mechanic</button>
+                    <div class="section-header-actions">
+                        <button class="btn btn-secondary" id="mechanicsBulkModeBtn" onclick="BulkOperations.toggleBulkMode('mechanics')">
+                            <img src="icons/misc/checklist.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                            <span>Bulk Edit</span>
+                        </button>
+                        <button class="btn btn-secondary" id="browseMechanicTemplatesBtn" onclick="TemplateManager.openTemplateBrowser('mechanic')">
+                            <img src="icons/misc/book-library.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                            <span>Templates</span>
+                        </button>
+                        <button class="btn btn-primary" id="addMechanicBtn">+ Add Mechanic</button>
+                    </div>
                 </header>
                 <p class="section-description">Document your game's mechanics and systems</p>
+                
+                <div class="mechanics-filters">
+                    <div class="filter-group">
+                        <label>Category:</label>
+                        <select id="mechanicsFilterCategory" class="filter-select">
+                            <option value="">All Categories</option>
+                            <option value="movement">Movement</option>
+                            <option value="combat">Combat</option>
+                            <option value="ui">UI/UX</option>
+                            <option value="gameplay">Gameplay</option>
+                            <option value="ai">AI</option>
+                            <option value="physics">Physics</option>
+                            <option value="networking">Networking</option>
+                            <option value="audio">Audio</option>
+                            <option value="graphics">Graphics</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Status:</label>
+                        <select id="mechanicsFilterStatus" class="filter-select">
+                            <option value="">All Statuses</option>
+                            <option value="not-started">Not Started</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="testing">Testing</option>
+                            <option value="complete">Complete</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Priority:</label>
+                        <select id="mechanicsFilterPriority" class="filter-select">
+                            <option value="">All Priorities</option>
+                            <option value="critical">🔴 Critical</option>
+                            <option value="high">🟠 High</option>
+                            <option value="medium">🟡 Medium</option>
+                            <option value="low">🟢 Low</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Complexity:</label>
+                        <select id="mechanicsFilterComplexity" class="filter-select">
+                            <option value="">All Complexities</option>
+                            <option value="simple">Simple</option>
+                            <option value="medium">Medium</option>
+                            <option value="complex">Complex</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Sort By:</label>
+                        <select id="mechanicsSortBy" class="filter-select">
+                            <option value="name">Name</option>
+                            <option value="priority">Priority</option>
+                            <option value="complexity">Complexity</option>
+                            <option value="date">Modified Date</option>
+                            <option value="status">Status</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-small btn-secondary" id="mechanicsClearFilters">Clear Filters</button>
+                </div>
                 
                 <div id="mechanicsList" class="mechanics-container"></div>
             </section>
@@ -243,33 +408,321 @@
             <section id="story" class="content-section">
                 <header class="section-header">
                     <h2>Story & Narrative</h2>
-                    <button class="btn btn-primary" id="addActBtn">+ Add Act</button>
+                    <div class="section-header-actions">
+                        <button class="btn btn-primary" id="addActBtn">
+                            <img src="icons/actions/add.svg" alt="" width="16" height="16"> Add Act
+                        </button>
+                    </div>
                 </header>
                 <p class="section-description">Organize your game's narrative into acts and scenes</p>
                 
-                <div id="storyList" class="story-container"></div>
+                <!-- Story View Tabs -->
+                <div class="story-tabs">
+                    <button class="story-tab active" data-view="list">
+                        <img src="icons/misc/list.svg" alt="" width="20" height="20"> Acts & Scenes
+                    </button>
+                    <!-- DISABLED - Story Map feature commented out
+                    <button class="story-tab" data-view="map">
+                        <img src="icons/misc/grid.svg" alt="" width="20" height="20"> Story Map
+                    </button>
+                    <button class="story-tab" data-view="characters">
+                        <img src="icons/misc/user.svg" alt="" width="20" height="20"> Characters
+                    </button>
+                    <button class="story-tab" data-view="locations">
+                        <img src="icons/misc/location.svg" alt="" width="20" height="20"> Locations
+                    </button>
+                    <button class="story-tab" data-view="timeline">
+                        <img src="icons/misc/calendar.svg" alt="" width="20" height="20"> Timeline
+                    </button>
+                    <button class="story-tab" data-view="items">
+                        <img src="icons/misc/package.svg" alt="" width="20" height="20"> Items
+                    </button>
+                    <button class="story-tab" data-view="quests">
+                        <img src="icons/misc/gameplay.svg" alt="" width="20" height="20"> Quests
+                    </button>
+                    <button class="story-tab" data-view="other">
+                        <img src="icons/misc/more.svg" alt="" width="20" height="20"> Conflicts & Themes
+                    </button>
+                </div>
+                
+                <!-- List View (existing) -->
+                <div id="storyListView" class="story-view active">
+                    <div id="storyList" class="story-container"></div>
+                </div>
+                
+                <!-- Map View (new) -->
+                <div id="storyMapView" class="story-view">
+                    <div class="story-map-toolbar">
+                        <div class="map-controls">
+                            <button class="btn btn-small" id="mapZoomIn" title="Zoom In">
+                                <img src="icons/actions/zoom-in.svg" alt="" width="16" height="16">
+                            </button>
+                            <button class="btn btn-small" id="mapZoomOut" title="Zoom Out">
+                                <img src="icons/actions/zoom-out.svg" alt="" width="16" height="16">
+                            </button>
+                            <button class="btn btn-small" id="mapResetZoom" title="Reset View">
+                                <img src="icons/actions/reset.svg" alt="" width="16" height="16">
+                            </button>
+                            <span class="toolbar-separator"></span>
+                            <button class="btn btn-small" id="mapUploadBackground" title="Upload Background Map">
+                                <img src="icons/actions/upload.svg" alt="" width="16" height="16"> Background
+                            </button>
+                            <input type="file" id="mapBackgroundInput" accept="image/*" style="display: none;">
+                            <button class="btn btn-small" id="mapClearBackground" title="Clear Background" style="display: none;">
+                                <img src="icons/actions/delete.svg" alt="" width="16" height="16"> Clear
+                            </button>
+                            <label class="map-opacity-control" id="mapOpacityControl" style="display: none;">
+                                <span>Opacity:</span>
+                                <input type="range" id="mapOpacitySlider" min="0" max="100" value="50" step="5">
+                                <span id="mapOpacityValue">50%</span>
+                            </label>
+                            <span class="toolbar-separator"></span>
+                            <button class="btn btn-small" id="mapExport" title="Export as Image">
+                                <img src="icons/actions/download.svg" alt="" width="16" height="16"> Export
+                            </button>
+                        </div>
+                        <div class="map-filters">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="showAllConnections" checked>
+                                <span>Show All Connections</span>
+                            </label>
+                            <select id="actFilterSelect" class="filter-select">
+                                <option value="">All Acts</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- DISABLED - Story Map feature commented out
+                    <div class="story-map-container" id="storyMapContainer">
+                        <canvas id="storyMapCanvas"></canvas>
+                        <div id="storyMapScenes" class="story-map-scenes"></div>
+                        <div class="story-map-toolbox" id="storyMapToolbox">
+                            <div class="toolbox-title">Add to Map</div>
+                            <button class="toolbox-btn" id="addQuestToMapBtn" title="Add Quest">
+                                <span class="toolbox-icon">🎯</span>
+                                <span class="toolbox-label">Quest</span>
+                            </button>
+                            <button class="toolbox-btn" id="addCharacterToMapBtn" title="Add Character">
+                                <span class="toolbox-icon">👤</span>
+                                <span class="toolbox-label">Character</span>
+                            </button>
+                            <button class="toolbox-btn" id="addLocationToMapBtn" title="Add Location">
+                                <span class="toolbox-icon">📍</span>
+                                <span class="toolbox-label">Location</span>
+                            </button>
+                            <div class="toolbox-divider"></div>
+                            <div class="toolbox-title">Visibility</div>
+                            <label class="toolbox-checkbox">
+                                <input type="checkbox" id="toggleQuestsVisibility" checked>
+                                <span>🎯 Quests</span>
+                            </label>
+                            <label class="toolbox-checkbox">
+                                <input type="checkbox" id="toggleCharactersVisibility" checked>
+                                <span>👤 Characters</span>
+                            </label>
+                            <label class="toolbox-checkbox">
+                                <input type="checkbox" id="toggleLocationsVisibility" checked>
+                                <span>📍 Locations</span>
+                            </label>
+                            <label class="toolbox-checkbox">
+                                <input type="checkbox" id="toggleScenesVisibility" checked>
+                                <span>📜 Scenes</span>
+                            </label>
+                            <div class="toolbox-divider"></div>
+                            <button class="toolbox-btn" id="autoLayoutBtn" title="Auto-arrange Nodes">
+                                <span class="toolbox-icon">⚡</span>
+                                <span class="toolbox-label">Auto Layout</span>
+                            </button>
+                        </div>
+                    </div>
+                    END OF STORY MAP - DISABLED -->
+                </div>
+                
+                <!-- Characters View -->
+                <div id="storyCharactersView" class="story-view">
+                    <div class="story-view-header">
+                        <button class="btn btn-primary" id="addCharacterBtn">
+                            <img src="icons/actions/add.svg" alt="" width="16" height="16"> Add Character
+                        </button>
+                        <div class="story-filters">
+                            <select id="characterRoleFilter" class="filter-select">
+                                <option value="">All Roles</option>
+                                <option value="protagonist">Protagonist</option>
+                                <option value="antagonist">Antagonist</option>
+                                <option value="supporting">Supporting</option>
+                                <option value="minor">Minor</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="charactersList" class="characters-grid"></div>
+                </div>
+                
+                <!-- Locations View -->
+                <div id="storyLocationsView" class="story-view">
+                    <div class="story-view-header">
+                        <button class="btn btn-primary" id="addLocationBtn">
+                            <img src="icons/actions/add.svg" alt="" width="16" height="16"> Add Location
+                        </button>
+                        <div class="story-filters">
+                            <select id="locationTypeFilter" class="filter-select">
+                                <option value="">All Types</option>
+                                <option value="interior">Interior</option>
+                                <option value="exterior">Exterior</option>
+                                <option value="world">World/Region</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="locationsList" class="locations-grid"></div>
+                </div>
+                
+                <!-- Timeline View -->
+                <div id="storyTimelineView" class="story-view">
+                    <div class="story-view-header">
+                        <button class="btn btn-primary" id="addTimelineEventBtn">
+                            <img src="icons/actions/add.svg" alt="" width="16" height="16"> Add Event
+                        </button>
+                        <div class="story-filters">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="timelineShowScenes" checked>
+                                <span>Include Scenes</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="timelineContainer" class="timeline-container"></div>
+                </div>
+                
+                <!-- Items View -->
+                <div id="storyItemsView" class="story-view">
+                    <div class="story-view-header">
+                        <button class="btn btn-primary" id="addStoryItemBtn">
+                            <img src="icons/actions/add.svg" alt="" width="16" height="16"> Add Item
+                        </button>
+                        <div class="story-filters">
+                            <input type="text" id="itemsSearchInput" placeholder="Search items..." class="search-input">
+                        </div>
+                    </div>
+                    <div class="items-spreadsheet-container">
+                        <table class="items-spreadsheet" id="itemsSpreadsheet">
+                            <thead>
+                                <tr>
+                                    <th class="col-actions">Actions</th>
+                                    <th class="col-name">Name</th>
+                                    <th class="col-type">Type</th>
+                                    <th class="col-rarity">Rarity</th>
+                                    <th class="col-stat">Damage/Power</th>
+                                    <th class="col-stat">Defense</th>
+                                    <th class="col-stat">Speed</th>
+                                    <th class="col-stat">Health</th>
+                                    <th class="col-stat">Mana/Energy</th>
+                                    <th class="col-effects">Special Effects</th>
+                                    <th class="col-relationships">Linked To</th>
+                                    <th class="col-description">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsTableBody">
+                                <!-- Items will be added dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Quests View -->
+                <div id="storyQuestsView" class="story-view">
+                    <div class="story-view-header">
+                        <button class="btn btn-primary" id="addQuestBtn">
+                            <img src="icons/actions/add.svg" alt="" width="16" height="16"> Add Quest
+                        </button>
+                        <div class="story-filters">
+                            <select id="questTypeFilter" class="filter-select">
+                                <option value="">All Types</option>
+                                <option value="main">Main Quest</option>
+                                <option value="side">Side Quest</option>
+                                <option value="optional">Optional</option>
+                                <option value="hidden">Hidden</option>
+                            </select>
+                            <select id="questStatusFilter" class="filter-select">
+                                <option value="">All Statuses</option>
+                                <option value="locked">Locked</option>
+                                <option value="available">Available</option>
+                                <option value="active">Active</option>
+                                <option value="completed">Completed</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                            <input type="text" id="questsSearchInput" placeholder="Search quests..." class="search-input">
+                        </div>
+                    </div>
+                    <div id="questsContainer" class="quests-container"></div>
+                </div>
+                
+                <!-- Conflicts & Themes View -->
+                <div id="storyOtherView" class="story-view">
+                    <div class="story-other-grid">
+                        <div class="story-other-section">
+                            <div class="story-view-header">
+                                <h3>Conflicts</h3>
+                                <button class="btn btn-primary btn-small" id="addConflictBtn">
+                                    <img src="icons/actions/add.svg" alt="" width="16" height="16"> Add
+                                </button>
+                            </div>
+                            <div id="conflictsList" class="conflicts-list"></div>
+                        </div>
+                        
+                        <div class="story-other-section">
+                            <div class="story-view-header">
+                                <h3>Themes</h3>
+                                <button class="btn btn-primary btn-small" id="addThemeBtn">
+                                    <img src="icons/actions/add.svg" alt="" width="16" height="16"> Add
+                                </button>
+                            </div>
+                            <div id="themesList" class="themes-list"></div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- Notes Section -->
             <section id="notes" class="content-section">
                 <header class="section-header">
                     <h2>Notes</h2>
-                    <button class="btn btn-primary" id="saveNotesBtn">Save Notes</button>
+                    <div class="section-header-actions">
+                        <button class="btn btn-primary" id="addNoteBtn">
+                            <img src="icons/actions/add.svg" alt="" width="16" height="16"> New Note
+                        </button>
+                    </div>
                 </header>
                 
-                <div class="notes-editor">
-                    <textarea 
-                        id="notesTextarea" 
-                        class="notes-textarea" 
-                        placeholder="Write your game development ideas, notes, and documentation here...&#10;&#10;You can use:&#10;# Headings&#10;- Bullet points&#10;**Bold text**&#10;*Italic text*"
-                        aria-label="Notes editor"
-                    ></textarea>
-                    <div id="notesPreview" class="notes-preview"></div>
+                <!-- Notes Toolbar -->
+                <div class="notes-toolbar">
+                    <div class="notes-search-bar">
+                        <input type="text" id="notesSearchInput" placeholder="Search notes..." class="search-input">
+                    </div>
+                    <div class="notes-filters">
+                        <select id="notesCategoryFilter" class="filter-select">
+                            <option value="">All Categories</option>
+                        </select>
+                        <select id="notesTagFilter" class="filter-select">
+                            <option value="">All Tags</option>
+                        </select>
+                        <select id="notesSortFilter" class="filter-select">
+                            <option value="modified">Recently Modified</option>
+                            <option value="created">Recently Created</option>
+                            <option value="title">Title (A-Z)</option>
+                            <option value="pinned">Pinned First</option>
+                        </select>
+                    </div>
+                    <div class="notes-view-toggle">
+                        <button class="view-toggle-btn active" data-view="grid" title="Grid View">
+                            <img src="icons/misc/grid.svg" alt="Grid" width="20" height="20">
+                        </button>
+                        <button class="view-toggle-btn" data-view="list" title="List View">
+                            <img src="icons/misc/list.svg" alt="List" width="20" height="20">
+                        </button>
+                    </div>
                 </div>
                 
-                <div class="notes-controls">
-                    <button class="btn" id="togglePreviewBtn">Toggle Preview</button>
-                </div>
+                <!-- Notes Container -->
+                <div id="notesContainer" class="notes-grid"></div>
+                
+                <!-- Note Editor Modal (will be populated dynamically) -->
             </section>
 
         </main>
@@ -280,6 +733,709 @@
         <div class="modal-content">
             <button class="modal-close" id="modalClose" aria-label="Close modal">&times;</button>
             <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Floating Utility Toolbox -->
+    <div class="utility-toolbox">
+        <button class="utility-toggle-btn" id="utilityToggleBtn" title="Utility Tools">
+            <img src="icons/actions/toolbox.svg" alt="" class="utility-icon" width="24" height="24">
+        </button>
+        <div class="utility-tools" id="utilityTools">
+            <button class="utility-tool-btn" id="powerCalculatorBtn" title="Power Calculator">
+                <img src="icons/misc/calculator.svg" alt="" class="tool-icon" width="20" height="20">
+                <span class="tool-label">Calculator</span>
+            </button>
+            <button class="utility-tool-btn" id="aiAssistantBtn" title="Forger - AI Assistant">
+                <img src="icons/misc/ai.svg" alt="" class="tool-icon" width="20" height="20">
+                <span class="tool-label">Forger</span>
+            </button>
+            <button class="utility-tool-btn" id="quickNotesBtn" title="Quick Notes">
+                <img src="icons/misc/document.svg" alt="" class="tool-icon" width="20" height="20">
+                <span class="tool-label">Notes</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Multi-Mode Calculator Modal -->
+    <div class="power-calculator-modal" id="powerCalculatorModal">
+        <div class="calculator-header">
+            <h3>
+                <img src="icons/misc/calculator.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                Calculator
+            </h3>
+            <button class="calculator-close" id="calculatorCloseBtn">&times;</button>
+        </div>
+        
+        <!-- Calculator Mode Tabs -->
+        <div class="calculator-tabs">
+            <button class="calculator-tab active" data-mode="basic">
+                <img src="icons/misc/calculator.svg" alt="" class="tab-icon" width="16" height="16">
+                <span>Basic</span>
+            </button>
+            <button class="calculator-tab" data-mode="power">
+                <img src="icons/misc/lightning.svg" alt="" class="tab-icon" width="16" height="16">
+                <span>Power</span>
+            </button>
+            <button class="calculator-tab" data-mode="damage">
+                <img src="icons/misc/combat.svg" alt="" class="tab-icon" width="16" height="16">
+                <span>Damage</span>
+            </button>
+            <button class="calculator-tab" data-mode="percentage">
+                <img src="icons/misc/progress.svg" alt="" class="tab-icon" width="16" height="16">
+                <span>%</span>
+            </button>
+            <button class="calculator-tab" data-mode="dice">
+                <img src="icons/misc/dice.svg" alt="" class="tab-icon" width="16" height="16">
+                <span>Dice</span>
+            </button>
+        </div>
+        
+        <div class="calculator-body">
+            <!-- Basic Calculator Mode -->
+            <div class="calculator-mode active" id="basicCalculatorMode">
+                <div class="basic-calculator">
+                    <div class="calculator-display">
+                        <div class="display-value" id="basicDisplay">0</div>
+                    </div>
+                    <div class="calculator-buttons">
+                        <button class="calc-btn calc-clear" data-action="clear">C</button>
+                        <button class="calc-btn calc-operator" data-action="delete">⌫</button>
+                        <button class="calc-btn calc-operator" data-action="percent">%</button>
+                        <button class="calc-btn calc-operator" data-action="divide">÷</button>
+                        
+                        <button class="calc-btn calc-number" data-value="7">7</button>
+                        <button class="calc-btn calc-number" data-value="8">8</button>
+                        <button class="calc-btn calc-number" data-value="9">9</button>
+                        <button class="calc-btn calc-operator" data-action="multiply">×</button>
+                        
+                        <button class="calc-btn calc-number" data-value="4">4</button>
+                        <button class="calc-btn calc-number" data-value="5">5</button>
+                        <button class="calc-btn calc-number" data-value="6">6</button>
+                        <button class="calc-btn calc-operator" data-action="subtract">−</button>
+                        
+                        <button class="calc-btn calc-number" data-value="1">1</button>
+                        <button class="calc-btn calc-number" data-value="2">2</button>
+                        <button class="calc-btn calc-number" data-value="3">3</button>
+                        <button class="calc-btn calc-operator" data-action="add">+</button>
+                        
+                        <button class="calc-btn calc-number calc-zero" data-value="0">0</button>
+                        <button class="calc-btn calc-number" data-value=".">.</button>
+                        <button class="calc-btn calc-equals" data-action="equals">=</button>
+                    </div>
+                    <div class="calculator-history">
+                        <div class="history-label">History:</div>
+                        <div id="basicHistory" class="history-list"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Power Calculator Mode -->
+            <div class="calculator-mode" id="powerCalculatorMode">
+                <div class="calculator-section">
+                    <label>Formula:</label>
+                    <input type="text" id="calculatorFormula" placeholder="e.g., level * 5 + strength * 2" class="calculator-input">
+                    <small class="calculator-hint">Use variables: level, strength, agility, intelligence, etc.</small>
+                </div>
+                
+                <div class="calculator-section">
+                    <label>Variables:</label>
+                    <div id="calculatorVariables" class="calculator-variables">
+                        <div class="variable-input">
+                            <label>level:</label>
+                            <input type="number" data-var="level" value="1" min="0" class="var-input">
+                        </div>
+                        <div class="variable-input">
+                            <label>strength:</label>
+                            <input type="number" data-var="strength" value="10" min="0" class="var-input">
+                        </div>
+                        <div class="variable-input">
+                            <label>agility:</label>
+                            <input type="number" data-var="agility" value="10" min="0" class="var-input">
+                        </div>
+                        <div class="variable-input">
+                            <label>intelligence:</label>
+                            <input type="number" data-var="intelligence" value="10" min="0" class="var-input">
+                        </div>
+                    </div>
+                    <button class="btn btn-small btn-secondary" id="addVariableBtn">+ Add Variable</button>
+                </div>
+                
+                <div class="calculator-section">
+                    <button class="btn btn-primary" id="calculateBtn">Calculate</button>
+                </div>
+                
+                <div class="calculator-result" id="calculatorResult">
+                    <div class="result-label">Result:</div>
+                    <div class="result-value" id="resultValue">-</div>
+                </div>
+                
+                <div class="calculator-section">
+                    <label>Quick Formulas:</label>
+                    <div class="quick-formulas">
+                        <button class="quick-formula-btn" data-formula="level * 5">Level × 5</button>
+                        <button class="quick-formula-btn" data-formula="level * 10 + strength * 2">Damage</button>
+                        <button class="quick-formula-btn" data-formula="level * 3 + intelligence">Mana Cost</button>
+                        <button class="quick-formula-btn" data-formula="Math.floor(level / 5) * 10">Every 5 Levels</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Damage Calculator Mode -->
+            <div class="calculator-mode" id="damageCalculatorMode">
+                <div class="calculator-section">
+                    <label>Base Damage:</label>
+                    <input type="number" id="baseDamage" value="10" min="0" class="calculator-input">
+                </div>
+                <div class="calculator-section">
+                    <label>Attack Multiplier (%):</label>
+                    <input type="number" id="attackMultiplier" value="100" min="0" class="calculator-input">
+                </div>
+                <div class="calculator-section">
+                    <label>Critical Chance (%):</label>
+                    <input type="number" id="critChance" value="0" min="0" max="100" class="calculator-input">
+                </div>
+                <div class="calculator-section">
+                    <label>Critical Multiplier:</label>
+                    <input type="number" id="critMultiplier" value="2" min="1" step="0.1" class="calculator-input">
+                </div>
+                <div class="calculator-section">
+                    <label>Defense Reduction (%):</label>
+                    <input type="number" id="defenseReduction" value="0" min="0" max="100" class="calculator-input">
+                </div>
+                <div class="calculator-result">
+                    <div class="result-label">Average Damage:</div>
+                    <div class="result-value" id="damageResult">-</div>
+                </div>
+                <div class="calculator-result" style="margin-top: 0.5rem;">
+                    <div class="result-label" style="font-size: 0.8rem;">Min / Max:</div>
+                    <div class="result-value" style="font-size: 1.5rem;" id="damageRange">- / -</div>
+                </div>
+            </div>
+            
+            <!-- Percentage Calculator Mode -->
+            <div class="calculator-mode" id="percentageCalculatorMode">
+                <div class="calculator-section">
+                    <label>What is</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="number" id="percentValue" value="10" class="calculator-input" style="flex: 1;">
+                        <span style="font-weight: bold;">%</span>
+                        <span>of</span>
+                        <input type="number" id="percentTotal" value="100" class="calculator-input" style="flex: 1;">
+                    </div>
+                </div>
+                <div class="calculator-result">
+                    <div class="result-label">Result:</div>
+                    <div class="result-value" id="percentResult">10</div>
+                </div>
+                <div class="calculator-section" style="margin-top: 1.5rem;">
+                    <label>What % is</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="number" id="percentPart" value="25" class="calculator-input" style="flex: 1;">
+                        <span>of</span>
+                        <input type="number" id="percentWhole" value="100" class="calculator-input" style="flex: 1;">
+                    </div>
+                </div>
+                <div class="calculator-result">
+                    <div class="result-label">Percentage:</div>
+                    <div class="result-value" id="percentOfResult">25%</div>
+                </div>
+            </div>
+            
+            <!-- Dice Roller Mode -->
+            <div class="calculator-mode" id="diceCalculatorMode">
+                <div class="calculator-section">
+                    <label>Number of Dice:</label>
+                    <input type="number" id="diceCount" class="calculator-input" value="1" min="1" max="100" placeholder="Enter number of dice">
+                </div>
+                <div class="calculator-section">
+                    <label>Number of Sides:</label>
+                    <input type="number" id="diceType" class="calculator-input" value="20" min="2" max="1000" placeholder="Enter number of sides">
+                </div>
+                <div class="calculator-section">
+                    <label>Modifier:</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <select id="diceModifierSign" class="calculator-input" style="flex: 0 0 80px;">
+                            <option value="1">+</option>
+                            <option value="-1">−</option>
+                        </select>
+                        <input type="number" id="diceModifierValue" class="calculator-input" value="0" min="0" placeholder="0" style="flex: 1;">
+                    </div>
+                </div>
+                <div class="calculator-section">
+                    <button class="btn btn-primary" id="rollDiceBtn" style="width: 100%;">
+                        <img src="icons/misc/dice.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        Roll Dice
+                    </button>
+                </div>
+                <div class="calculator-result">
+                    <div class="result-label">Result:</div>
+                    <div class="result-value" id="diceResult">-</div>
+                </div>
+                <div id="diceBreakdown" class="dice-breakdown"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Notes Modal -->
+    <div class="quick-notes-modal" id="quickNotesModal">
+        <div class="calculator-header">
+            <h3>
+                <img src="icons/misc/document.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                Quick Notes
+            </h3>
+            <button class="calculator-close" id="quickNotesCloseBtn">
+                <span>×</span>
+            </button>
+        </div>
+        <div class="calculator-body">
+            <div class="quick-notes-search">
+                <input type="text" id="quickNotesSearch" class="calculator-input" placeholder="Search notes...">
+                <img src="icons/actions/search.svg" alt="" width="16" height="16" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); opacity: 0.5;">
+            </div>
+            
+            <div class="quick-notes-actions">
+                <button class="btn btn-primary" id="createQuickNoteBtn">
+                    <img src="icons/actions/add.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                    New Note
+                </button>
+                <button class="btn btn-secondary" id="goToNotesBtn">
+                    <img src="icons/misc/clipboard.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                    Go to Notes Tab
+                </button>
+            </div>
+            
+            <div class="quick-notes-list" id="quickNotesList"></div>
+            
+            <!-- Quick Note Editor (hidden by default) -->
+            <div class="quick-note-editor" id="quickNoteEditor" style="display: none;">
+                <input type="text" id="quickNoteTitle" class="calculator-input" placeholder="Note Title" style="margin-bottom: 0.5rem;">
+                <select id="quickNoteCategory" class="calculator-input" style="margin-bottom: 0.5rem;">
+                    <option value="Ideas">Ideas</option>
+                    <option value="To-Do">To-Do</option>
+                    <option value="Research">Research</option>
+                    <option value="Bugs">Bugs</option>
+                    <option value="Design">Design</option>
+                    <option value="Other">Other</option>
+                </select>
+                <textarea id="quickNoteContent" class="calculator-input" placeholder="Note content..." rows="8" style="resize: vertical;"></textarea>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button class="btn btn-primary" id="saveQuickNoteBtn">
+                        <img src="icons/actions/save.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        Save
+                    </button>
+                    <button class="btn btn-secondary" id="cancelQuickNoteBtn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Assistant Chat Panel -->
+    <div class="ai-assistant-panel" id="aiAssistantPanel">
+        <div class="ai-resize-handle-left" id="aiResizeHandleLeft"></div>
+        <div class="ai-resize-handle-top" id="aiResizeHandleTop"></div>
+        <div class="ai-header">
+            <div class="ai-header-left">
+                <img src="icons/misc/ai.svg" alt="" class="ai-icon" width="24" height="24">
+                <h3>Forger</h3>
+            </div>
+            <div class="ai-header-right">
+                <button class="ai-settings-btn" id="aiSettingsBtn" title="AI Settings">
+                    <img src="icons/navigation/settings.svg" alt="" width="20" height="20">
+                </button>
+                <button class="ai-close-btn" id="aiCloseBtn">&times;</button>
+            </div>
+        </div>
+        <div class="ai-status-bar">
+            <span class="ai-status-indicator" id="aiStatusIndicator">
+                <span class="status-dot"></span>
+                <span class="status-text" id="aiStatusText">Not Configured</span>
+            </span>
+            <button class="ai-clear-btn" id="aiClearHistoryBtn" title="Clear conversation history">
+                <img src="icons/actions/trash.svg" alt="" width="16" height="16">
+            </button>
+        </div>
+        <div class="ai-chat-container" id="aiChatContainer">
+            <div class="ai-welcome-message">
+                <div class="welcome-icon">
+                    <img src="icons/misc/ai.svg" alt="" width="48" height="48">
+                </div>
+                <h4>Welcome to Forger!</h4>
+                <p>I'm here to help you brainstorm and develop your game. I have full awareness of all your tasks, assets, classes, mechanics, story elements, and more.</p>
+                <p>Ask me anything about your project, or use me to:</p>
+                <ul>
+                    <li>
+                        <img src="icons/misc/lightbulb.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        Brainstorm new ideas and features
+                    </li>
+                    <li>
+                        <img src="icons/actions/search.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        Analyze your game design
+                    </li>
+                    <li>
+                        <img src="icons/misc/progress.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        Get insights on balance and structure
+                    </li>
+                    <li>✨ Explore creative possibilities</li>
+                </ul>
+                <p class="welcome-note">Note: I can read and analyze everything, but I won't make any changes to your project directly.</p>
+            </div>
+            <div class="ai-messages" id="aiMessages"></div>
+        </div>
+        <div class="ai-input-container">
+            <textarea 
+                class="ai-input" 
+                id="aiInput" 
+                placeholder="Ask me anything about your game design..."
+                rows="3"
+            ></textarea>
+            <button class="ai-send-btn" id="aiSendBtn">
+                <img src="icons/actions/export.svg" alt="" class="send-icon" width="20" height="20">
+                <span class="send-label">Send</span>
+            </button>
+        </div>
+        <div class="ai-footer">
+            <span class="ai-footer-note">
+                <img src="icons/misc/lightbulb.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                Tip: I can see all your project data and help with brainstorming
+            </span>
+        </div>
+    </div>
+
+    <!-- AI Settings Modal -->
+    <div class="ai-settings-modal" id="aiSettingsModal">
+        <div class="ai-settings-content">
+            <div class="ai-settings-header">
+                <h2>
+                    <img src="icons/navigation/settings.svg" alt="" width="24" height="24" style="vertical-align: middle; margin-right: 8px;">
+                    AI Configuration
+                </h2>
+                <button class="ai-settings-close" id="aiSettingsCloseBtn">&times;</button>
+            </div>
+            
+            <div class="ai-settings-body">
+                <div class="settings-intro">
+                    <p>Choose how you want to connect to an AI model. Select one of three options below:</p>
+                </div>
+                
+                <!-- Mode Selection -->
+                <div class="ai-mode-selector">
+                    <label class="ai-mode-option" data-mode="local">
+                        <input type="radio" name="aiMode" value="local" id="aiModeLocal">
+                        <div class="mode-card">
+                            <div class="mode-icon">
+                                <img src="icons/actions/computer-monitor.svg" alt="" width="32" height="32">
+                            </div>
+                            <div class="mode-details">
+                                <h3>Local GGUF Model</h3>
+                                <p>Run AI models directly in your browser using WebAssembly. Private and offline-capable.</p>
+                                <span class="mode-badge mode-badge-local">Best Privacy</span>
+                            </div>
+                        </div>
+                    </label>
+                    
+                    <label class="ai-mode-option" data-mode="api">
+                        <input type="radio" name="aiMode" value="api" id="aiModeAPI">
+                        <div class="mode-card">
+                            <div class="mode-icon">
+                                <img src="icons/actions/key.svg" alt="" width="32" height="32">
+                            </div>
+                            <div class="mode-details">
+                                <h3>API Provider</h3>
+                                <p>Connect to OpenAI, Anthropic, Cohere, or any compatible API with your own key.</p>
+                                <span class="mode-badge mode-badge-api">Most Powerful</span>
+                            </div>
+                        </div>
+                    </label>
+                    
+                    <label class="ai-mode-option" data-mode="remote">
+                        <input type="radio" name="aiMode" value="remote" id="aiModeRemote">
+                        <div class="mode-card">
+                            <div class="mode-icon">
+                                <img src="icons/misc/network.svg" alt="" width="32" height="32">
+                            </div>
+                            <div class="mode-details">
+                                <h3>Remote Server</h3>
+                                <p>Connect to a custom AI server (localhost, Lambda, or your own deployment).</p>
+                                <span class="mode-badge mode-badge-remote">Most Flexible</span>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+                
+                <!-- Local GGUF Settings -->
+                <div class="ai-settings-section" id="localSettings" style="display: none;">
+                    <h3>
+                        <img src="icons/actions/computer-monitor.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                        Local Model Configuration
+                    </h3>
+                    <div class="settings-info">
+                        <p><strong>Note:</strong> GGUF models run entirely in your browser using WebAssembly. No data leaves your device.</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Model Selection</label>
+                        <select class="settings-input" id="localModelSelect">
+                            <option value="">-- Select a model --</option>
+                            <option value="default">Default Model (Included)</option>
+                            <option value="custom">Load Custom GGUF File...</option>
+                        </select>
+                        <button type="button" class="btn btn-secondary btn-sm" id="openModelsFolder" style="width: 100%; margin-top: 0.5rem;">
+                            <img src="icons/misc/folder.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                            Open Models Folder
+                        </button>
+                        <small>Place .gguf model files in the models/ folder. They will appear here automatically.</small>
+                    </div>
+                    
+                    <div class="form-group" id="customModelUpload" style="display: none;">
+                        <label>Upload GGUF Model File</label>
+                        <input type="file" class="settings-input" id="ggufFileInput" accept=".gguf">
+                        <small>Supported: Any GGUF format model (recommended: 3-7B parameters)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Context Length</label>
+                        <input type="number" class="settings-input" id="localContextLength" value="2048" min="512" max="8192" step="512">
+                        <small>Higher values allow longer conversations but use more memory</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Temperature</label>
+                        <input type="range" class="settings-slider" id="localTemperature" min="0" max="2" step="0.1" value="0.7">
+                        <span class="slider-value" id="localTempValue">0.7</span>
+                        <small>Higher = more creative, Lower = more focused</small>
+                    </div>
+                    
+                    <div class="form-group" id="modelStatusSection" style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 4px; display: none;">
+                        <label>Model Status</label>
+                        <div id="modelStatus" style="margin-top: 0.5rem; font-size: 0.9rem; color: #888;">
+                            No model loaded
+                        </div>
+                        <button type="button" class="btn btn-danger btn-sm" id="unloadModelBtn" style="width: 100%; margin-top: 0.5rem; display: none;">
+                            <img src="icons/actions/trash.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                            Unload Model (Free Memory)
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- API Provider Settings -->
+                <div class="ai-settings-section" id="apiSettings" style="display: none;">
+                    <h3>
+                        <img src="icons/actions/key.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                        API Provider Configuration
+                    </h3>
+                    <div class="settings-info">
+                        <p><strong>Note:</strong> Your API key is stored locally and never sent to our servers.</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Provider</label>
+                        <select class="settings-input" id="apiProvider">
+                            <option value="openai">OpenAI (GPT-4, GPT-3.5)</option>
+                            <option value="anthropic">Anthropic (Claude)</option>
+                            <option value="cohere">Cohere</option>
+                            <option value="google">Google AI (Gemini)</option>
+                            <option value="mistral">Mistral AI</option>
+                            <option value="custom">Custom API</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="customApiEndpoint" style="display: none;">
+                        <label>API Endpoint</label>
+                        <input type="url" class="settings-input" id="apiEndpoint" placeholder="https://api.example.com/v1/chat/completions">
+                        <small>Enter the full API endpoint URL</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="password" class="settings-input" id="apiKey" placeholder="sk-...">
+                        <small>Get your API key from the provider's dashboard</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Model</label>
+                        <input type="text" class="settings-input" id="apiModel" placeholder="gpt-4" value="gpt-4">
+                        <small>Specific model name (e.g., gpt-4, claude-3-opus-20240229)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Temperature</label>
+                        <input type="range" class="settings-slider" id="apiTemperature" min="0" max="2" step="0.1" value="0.7">
+                        <span class="slider-value" id="apiTempValue">0.7</span>
+                        <small>Higher = more creative, Lower = more focused</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Max Tokens</label>
+                        <input type="number" class="settings-input" id="apiMaxTokens" value="2000" min="100" max="8000" step="100">
+                        <small>Maximum length of AI responses</small>
+                    </div>
+                </div>
+                
+                <!-- Remote Server Settings -->
+                <div class="ai-settings-section" id="remoteSettings" style="display: none;">
+                    <h3>
+                        <img src="icons/misc/network.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                        Remote Server Configuration
+                    </h3>
+                    <div class="settings-info">
+                        <p><strong>Note:</strong> Connect to your own AI server or third-party hosting service.</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Server URL</label>
+                        <input type="url" class="settings-input" id="remoteServerUrl" placeholder="http://localhost:8080 or https://your-server.com">
+                        <small>Full URL including protocol and port</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Endpoint Path</label>
+                        <input type="text" class="settings-input" id="remoteEndpointPath" value="/v1/chat/completions" placeholder="/v1/chat/completions">
+                        <small>API endpoint path (e.g., /v1/chat/completions, /api/generate)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="remoteRequiresAuth">
+                            <span>Requires Authentication</span>
+                        </label>
+                    </div>
+                    
+                    <div id="remoteAuthSettings" style="display: none;">
+                        <div class="form-group">
+                            <label>Authentication Type</label>
+                            <select class="settings-input" id="remoteAuthType">
+                                <option value="bearer">Bearer Token</option>
+                                <option value="apikey">API Key</option>
+                                <option value="basic">Basic Auth</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Token/Key</label>
+                            <input type="password" class="settings-input" id="remoteAuthToken" placeholder="Your authentication token">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Request Format</label>
+                        <select class="settings-input" id="remoteRequestFormat">
+                            <option value="openai">OpenAI Compatible</option>
+                            <option value="ollama">Ollama</option>
+                            <option value="llamacpp">llama.cpp</option>
+                            <option value="textgen">Text Generation WebUI</option>
+                            <option value="custom">Custom JSON</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button class="btn btn-secondary btn-sm" id="testConnectionBtn">
+                            <img src="icons/actions/plug-connection.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                            <span>Test Connection</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Test Area -->
+                <div class="ai-test-section" id="aiTestSection" style="display: none;">
+                    <h3>
+                        <img src="icons/actions/flask-test.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                        Test Configuration
+                    </h3>
+                    <textarea class="settings-input" id="testPrompt" rows="3" placeholder="Type a test message...">Hello! Can you introduce yourself?</textarea>
+                    <button class="btn btn-primary btn-sm" id="runTestBtn">
+                        <img src="icons/actions/play.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <span>Run Test</span>
+                    </button>
+                    <div class="test-result" id="testResult"></div>
+                </div>
+            </div>
+            
+            <div class="ai-settings-footer">
+                <button class="btn btn-secondary" id="cancelSettingsBtn">Cancel</button>
+                <button class="btn btn-primary" id="saveSettingsBtn">
+                    <img src="icons/actions/save.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                    <span>Save Configuration</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Actions Panel -->
+    <div id="bulkActionsPanel" class="bulk-actions-panel">
+        <div class="bulk-panel-header">
+            <span><strong id="bulkSelectedCount">0</strong> items selected</span>
+            <button class="btn-icon" onclick="BulkOperations.deselectAll()" title="Deselect all">
+                <span>×</span>
+            </button>
+        </div>
+        <div class="bulk-panel-actions">
+            <button class="btn btn-sm btn-primary" onclick="BulkOperations.bulkAddRelationships()">
+                <img src="icons/actions/add.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                <span>Add Relationships</span>
+            </button>
+            <button class="btn btn-sm btn-secondary" onclick="BulkOperations.bulkRemoveRelationships()">
+                <img src="icons/actions/subtract.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                <span>Remove Relationships</span>
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="BulkOperations.bulkDelete()">
+                <img src="icons/actions/trash.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                <span>Delete Selected</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Project Management Modal -->
+    <div class="project-modal" id="projectModal">
+        <div class="project-modal-content">
+            <div class="project-modal-header">
+                <h2>
+                    <img src="icons/misc/gameplay.svg" alt="" width="24" height="24" style="vertical-align: middle; margin-right: 8px;">
+                    Project Management
+                </h2>
+                <button class="project-modal-close" id="projectModalClose">&times;</button>
+            </div>
+            <div class="project-modal-body">
+                <div class="project-section">
+                    <h3>Current Project</h3>
+                    <div class="current-project-info">
+                        <input type="text" id="projectNameInput" class="project-name-input" placeholder="Project Name">
+                        <button class="btn btn-sm btn-primary" id="renameProjectBtn">Rename</button>
+                    </div>
+                </div>
+                
+                <div class="project-section">
+                    <h3>Actions</h3>
+                    <button class="btn btn-primary" id="newProjectBtn">
+                        <img src="icons/actions/add.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <span>New Project</span>
+                    </button>
+                    <button class="btn btn-accent" id="exportProjectBtn">
+                        <img src="icons/actions/export.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <span>Export Current Project</span>
+                    </button>
+                    <button class="btn btn-accent" id="importProjectBtn">
+                        <img src="icons/actions/import.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <span>Import Project</span>
+                    </button>
+                    <button class="btn btn-danger" id="deleteProjectBtn">
+                        <img src="icons/actions/trash.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <span>Delete Current Project</span>
+                    </button>
+                    <button class="btn btn-danger" id="deleteAllProjectsBtn">
+                        <img src="icons/actions/warning.svg" alt="" width="16" height="16" style="vertical-align: middle; margin-right: 4px;">
+                        <span>Delete ALL Projects</span>
+                    </button>
+                </div>
+                
+                <!-- Hidden file input for project import -->
+                <input type="file" id="importProjectFileInput" accept=".zip" style="display: none;">
+                
+                <div class="project-section">
+                    <h3>All Projects</h3>
+                    <div class="project-list" id="projectList"></div>
+                </div>
+            </div>
         </div>
     </div>
 

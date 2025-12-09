@@ -424,7 +424,7 @@
                     <!-- DISABLED - Story Map feature commented out
                     <button class="story-tab" data-view="map">
                         <img src="icons/misc/grid.svg" alt="" width="20" height="20"> Story Map
-                    </button>
+                    </button>-->
                     <button class="story-tab" data-view="characters">
                         <img src="icons/misc/user.svg" alt="" width="20" height="20"> Characters
                     </button>
@@ -454,10 +454,10 @@
                 <div id="storyMapView" class="story-view">
                     <div class="story-map-toolbar">
                         <div class="map-controls">
-                            <button class="btn btn-small" id="mapZoomIn" title="Zoom In">
+                            <!--<button class="btn btn-small" id="mapZoomIn" title="Zoom In">
                                 <img src="icons/actions/zoom-in.svg" alt="" width="16" height="16">
-                            </button>
-                            <button class="btn btn-small" id="mapZoomOut" title="Zoom Out">
+                            </button>-->
+                            <!--<button class="btn btn-small" id="mapZoomOut" title="Zoom Out">
                                 <img src="icons/actions/zoom-out.svg" alt="" width="16" height="16">
                             </button>
                             <button class="btn btn-small" id="mapResetZoom" title="Reset View">
@@ -475,7 +475,7 @@
                                 <span>Opacity:</span>
                                 <input type="range" id="mapOpacitySlider" min="0" max="100" value="50" step="5">
                                 <span id="mapOpacityValue">50%</span>
-                            </label>
+                            </label>-->
                             <span class="toolbar-separator"></span>
                             <button class="btn btn-small" id="mapExport" title="Export as Image">
                                 <img src="icons/actions/download.svg" alt="" width="16" height="16"> Export
@@ -491,50 +491,8 @@
                             </select>
                         </div>
                     </div>
-                    <!-- DISABLED - Story Map feature commented out
-                    <div class="story-map-container" id="storyMapContainer">
-                        <canvas id="storyMapCanvas"></canvas>
-                        <div id="storyMapScenes" class="story-map-scenes"></div>
-                        <div class="story-map-toolbox" id="storyMapToolbox">
-                            <div class="toolbox-title">Add to Map</div>
-                            <button class="toolbox-btn" id="addQuestToMapBtn" title="Add Quest">
-                                <span class="toolbox-icon">🎯</span>
-                                <span class="toolbox-label">Quest</span>
-                            </button>
-                            <button class="toolbox-btn" id="addCharacterToMapBtn" title="Add Character">
-                                <span class="toolbox-icon">👤</span>
-                                <span class="toolbox-label">Character</span>
-                            </button>
-                            <button class="toolbox-btn" id="addLocationToMapBtn" title="Add Location">
-                                <span class="toolbox-icon">📍</span>
-                                <span class="toolbox-label">Location</span>
-                            </button>
-                            <div class="toolbox-divider"></div>
-                            <div class="toolbox-title">Visibility</div>
-                            <label class="toolbox-checkbox">
-                                <input type="checkbox" id="toggleQuestsVisibility" checked>
-                                <span>🎯 Quests</span>
-                            </label>
-                            <label class="toolbox-checkbox">
-                                <input type="checkbox" id="toggleCharactersVisibility" checked>
-                                <span>👤 Characters</span>
-                            </label>
-                            <label class="toolbox-checkbox">
-                                <input type="checkbox" id="toggleLocationsVisibility" checked>
-                                <span>📍 Locations</span>
-                            </label>
-                            <label class="toolbox-checkbox">
-                                <input type="checkbox" id="toggleScenesVisibility" checked>
-                                <span>📜 Scenes</span>
-                            </label>
-                            <div class="toolbox-divider"></div>
-                            <button class="toolbox-btn" id="autoLayoutBtn" title="Auto-arrange Nodes">
-                                <span class="toolbox-icon">⚡</span>
-                                <span class="toolbox-label">Auto Layout</span>
-                            </button>
-                        </div>
-                    </div>
-                    END OF STORY MAP - DISABLED -->
+                    
+                    
                 </div>
                 
                 <!-- Characters View -->
@@ -721,8 +679,6 @@
                 
                 <!-- Notes Container -->
                 <div id="notesContainer" class="notes-grid"></div>
-                
-                <!-- Note Editor Modal (will be populated dynamically) -->
             </section>
 
         </main>
@@ -1124,7 +1080,7 @@
                         <input type="radio" name="aiMode" value="local" id="aiModeLocal">
                         <div class="mode-card">
                             <div class="mode-icon">
-                                <img src="icons/actions/computer-monitor.svg" alt="" width="32" height="32">
+                                <img src="icons/misc/ai.svg" alt="" width="32" height="32">
                             </div>
                             <div class="mode-details">
                                 <h3>Local GGUF Model</h3>
@@ -1166,7 +1122,7 @@
                 <!-- Local GGUF Settings -->
                 <div class="ai-settings-section" id="localSettings" style="display: none;">
                     <h3>
-                        <img src="icons/actions/computer-monitor.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+                        <img src="icons/misc/ai.svg" alt="" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
                         Local Model Configuration
                     </h3>
                     <div class="settings-info">

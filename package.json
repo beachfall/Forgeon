@@ -7,8 +7,13 @@
     "start": "electron .",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
+    "build:win-msi": "electron-builder --win msi",
+    "build:win-all": "electron-builder --win nsis portable msi",
     "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux"
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder -mwl",
+    "pack:win": "electron-packager . \"Forgeon Game Planner\" --platform=win32 --arch=x64 --out=build --overwrite --icon=icons/application/icon.ico --app-version=1.0.0",
+    "msi": "node build-msi.js"
   },
   "keywords": [
     "game",
@@ -17,30 +22,67 @@
     "ai",
     "assistant"
   ],
-  "author": "westfallt13",
-  "license": "MIT",
+  "author": {
+    "name": "Thomas Westfall",
+    "email": "westfallt13@gmail.com"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/beachfall/Forgeon.git"
+  },
+  "homepage": "https://github.com/beachfall/Forgeon",
+  "bugs": {
+    "url": "https://github.com/beachfall/Forgeon/issues",
+    "email": "westfallt13@gmail.com"
+  },
   "devDependencies": {
     "electron": "^39.1.1",
-    "electron-builder": "^24.9.1"
+    "electron-builder": "^24.9.1",
+    "electron-packager": "^17.1.2",
+    "electron-wix-msi": "^5.1.3"
   },
   "build": {
     "appId": "com.forgeon.gameplanner",
     "productName": "Forgeon Game Planner",
     "directories": {
-      "output": "dist"
+      "output": "build"
     },
     "files": [
       "**/*",
       "!node_modules/**/*",
       "!dist/**/*",
-      "!.git/**/*"
+      "!build/**/*",
+      "!.git/**/*",
+      "!**/.DS_Store"
     ],
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "msi",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
-      "icon": "icons/application/512x512.png"
+      "icon": "icons/application/icon.ico",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "signingHashAlgorithms": [
+        "sha256"
+      ],
+      "sign": null
     },
     "mac": {
       "target": "dmg",

@@ -3037,7 +3037,10 @@ const AssetTracker = {
         const hasFiles = asset && asset.files && asset.files.length > 0;
         const hasLegacyFile = asset && asset.hasFile;
         
-        if (!hasFiles && !hasLegacyFile) return;
+        if (!hasFiles && !hasLegacyFile) {
+            Utils.showNotification('No files to preview', 'info');
+            return;
+        }
         
         try {
             const fileURLs = [];
@@ -3054,7 +3057,10 @@ const AssetTracker = {
                 
                 for (const fileData of asset.files) {
                     const storedFile = await FileStorage.getFile(fileData.id);
-                    if (!storedFile) continue;
+                    if (!storedFile) {
+                        console.warn('File not found in storage:', fileData.id, fileData.fileName);
+                        continue;
+                    }
                     
                     const file = storedFile.file;
                     const fileURL = URL.createObjectURL(file);
@@ -3096,6 +3102,34 @@ const AssetTracker = {
                                 <iframe src="${fileURL}" style="width: 100%; height: 400px; border: none; border-radius: 4px;"></iframe>
                             </div>
                         `;
+                    } else if (this.isTextDocument(file.type, fileData.fileName)) {
+                        // Text-based documents and scripts for multi-file assets
+                        const reader = new FileReader();
+                        const textContent = await new Promise((resolve) => {
+                            reader.onload = (e) => resolve(e.target.result);
+                            reader.onerror = () => resolve(null);
+                            reader.readAsText(file);
+                        });
+                        
+                        if (textContent) {
+                            const extension = fileData.fileName.split('.').pop().toLowerCase();
+                            const language = this.getLanguageForFile(extension);
+                            
+                            previewHtml += `
+                                <div class="document-preview" style="max-height: 400px; overflow: auto;">
+                                    <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: 4px; margin: 0; font-family: 'Courier New', monospace; line-height: 1.5; font-size: 0.85rem;"><code class="language-${language}">${Utils.escapeHtml(textContent)}</code></pre>
+                                </div>
+                                <div class="preview-info" style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+                                    <p><strong>Lines:</strong> ${textContent.split('\n').length}</p>
+                                </div>
+                            `;
+                        } else {
+                            previewHtml += `
+                                <div class="file-info">
+                                    <p style="color: var(--text-secondary);">Could not read file contents.</p>
+                                </div>
+                            `;
+                        }
                     } else {
                         previewHtml += `
                             <div class="file-info">
@@ -3253,7 +3287,7 @@ const AssetTracker = {
             
         } catch (error) {
             console.error('Error previewing asset:', error);
-            alert('Error loading file preview');
+            Utils.showNotification('Error loading file preview: ' + error.message, 'error');
         }
     },
     
@@ -3264,8 +3298,10 @@ const AssetTracker = {
             'txt', 'md', 'json', 'xml', 'csv', 'log',
             'js', 'ts', 'jsx', 'tsx', 'html', 'css', 'scss', 'sass',
             'c', 'cpp', 'h', 'hpp', 'cs', 'java', 'py', 'rb', 'php',
-            'go', 'rs', 'swift', 'kt', 'sh', 'bat', 'ps1',
-            'sql', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf'
+            'go', 'rs', 'rust', 'swift', 'kt', 'sh', 'bat', 'ps1', 'cmd',
+            'sql', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf',
+            'gd', 'gdscript', 'lua', 'pl', 'r', 'dart', 'vim', 'vue',
+            'asm', 's', 'makefile', 'dockerfile', 'gitignore'
         ];
         return textExtensions.includes(extension) || 
                mimeType?.startsWith('text/') || 
@@ -3281,9 +3317,12 @@ const AssetTracker = {
             'json': 'json', 'md': 'markdown',
             'py': 'python', 'rb': 'ruby', 'php': 'php',
             'java': 'java', 'c': 'c', 'cpp': 'cpp', 'cs': 'csharp',
-            'go': 'go', 'rs': 'rust', 'swift': 'swift', 'kt': 'kotlin',
-            'sh': 'bash', 'bat': 'batch', 'ps1': 'powershell',
-            'sql': 'sql', 'yaml': 'yaml', 'yml': 'yaml'
+            'go': 'go', 'rs': 'rust', 'rust': 'rust', 'swift': 'swift', 'kt': 'kotlin',
+            'sh': 'bash', 'bat': 'batch', 'cmd': 'batch', 'ps1': 'powershell',
+            'sql': 'sql', 'yaml': 'yaml', 'yml': 'yaml',
+            'gd': 'gdscript', 'gdscript': 'gdscript', 'lua': 'lua',
+            'pl': 'perl', 'r': 'r', 'dart': 'dart', 'vue': 'vue',
+            'dockerfile': 'dockerfile', 'makefile': 'makefile'
         };
         return languageMap[extension.toLowerCase()] || 'plaintext';
     },

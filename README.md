@@ -110,12 +110,25 @@ Forgeon/
 
 ## License
 
-This project is open source and available for personal and commercial use.
+Copyright (c) 2025 Thomas Westfall. All Rights Reserved.
 
-## Contributing
+This is proprietary software. See the [LICENSE](LICENSE) file for full terms and conditions.
 
-Feel free to submit issues, fork the repository, and create pull requests for any improvements.
+**Users MAY:**
+- Use for personal, commercial, and non-commercial projects
+
+**Users MAY NOT:**
+- Redistribute, sell, or sublicense the software
+- Modify or create derivative works for distribution
+
+## Support
+
+For issues, questions, or feature requests:
+- **Email**: westfallt13@gmail.com
+- **GitHub Issues**: https://github.com/beachfall/Forgeon/issues
 
 ---
 
 **Forgeon** - Forge your game development journey
+
+Copyright (c) 2025 Thomas Westfall. All Rights Reserved.

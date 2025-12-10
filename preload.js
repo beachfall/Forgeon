@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     
     // Progress updates
     onGenerationProgress: (callback) => {
+        // Remove any existing listeners first to prevent accumulation
+        ipcRenderer.removeAllListeners('generation-progress');
         ipcRenderer.on('generation-progress', (event, data) => callback(data));
     },
     

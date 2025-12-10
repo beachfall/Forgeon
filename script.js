@@ -1697,6 +1697,10 @@ const Modal = {
     },
     
     open(content) {
+        // Ensure clean state before opening
+        this.overlay.style.display = '';
+        document.body.style.pointerEvents = '';
+        
         this.body.innerHTML = content;
         this.overlay.classList.add('active');
         this.overlay.setAttribute('aria-hidden', 'false');
@@ -1709,12 +1713,48 @@ const Modal = {
             document.activeElement.blur();
         }
         
+        // Force remove active class and ensure display is none
         this.overlay.classList.remove('active');
         this.overlay.setAttribute('aria-hidden', 'true');
+        this.overlay.style.display = 'none';
         document.body.style.overflow = '';
+        document.body.style.pointerEvents = '';
         this.body.innerHTML = '';
+    },
+    
+    // Emergency cleanup function to force-close modal if it gets stuck
+    forceClose() {
+        try {
+            if (this.overlay) {
+                this.overlay.classList.remove('active');
+                this.overlay.style.display = 'none';
+                this.overlay.setAttribute('aria-hidden', 'true');
+            }
+            if (this.body) {
+                this.body.innerHTML = '';
+            }
+            document.body.style.overflow = '';
+            document.body.style.pointerEvents = '';
+            console.log('Modal force-closed');
+        } catch (e) {
+            console.error('Error force-closing modal:', e);
+        }
     }
 };
+
+// Global safety mechanism: Detect and fix stuck overlays
+setInterval(() => {
+    // Check if modal overlay exists but is not visible
+    const modalOverlay = document.getElementById('modalOverlay');
+    if (modalOverlay && !modalOverlay.classList.contains('active') && modalOverlay.style.display !== 'none') {
+        modalOverlay.style.display = 'none';
+    }
+    
+    // Ensure body is never permanently blocked
+    if (document.body.style.pointerEvents === 'none' && !modalOverlay?.classList.contains('active')) {
+        document.body.style.pointerEvents = '';
+    }
+}, 1000);
 
 // ============================================
 // Dashboard
@@ -3278,11 +3318,17 @@ const AssetTracker = {
             Modal.open(previewHtml);
             
             // Cleanup URLs when modal closes
-            const originalClose = Modal.close;
+            const originalClose = Modal.close.bind(Modal);
             Modal.close = function() {
-                fileURLs.forEach(url => URL.revokeObjectURL(url));
-                Modal.close = originalClose;
-                originalClose.call(Modal);
+                try {
+                    fileURLs.forEach(url => URL.revokeObjectURL(url));
+                } catch (e) {
+                    console.error('Error revoking URLs:', e);
+                } finally {
+                    // Always restore original close function
+                    Modal.close = originalClose;
+                    originalClose();
+                }
             };
             
         } catch (error) {
@@ -18482,6 +18528,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         // For backward compatibility, we'll still allow it but log a warning
         return window._originalConfirm(message);
     };
+    
+    // Emergency modal fix: Ctrl+Shift+Escape force closes any stuck modals
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'Escape') {
+            e.preventDefault();
+            Modal.forceClose();
+            Utils.showNotification('Modal force-closed', 'info');
+        }
+    });
     
     console.log('🎮 Forgeon initialized successfully!');
 });

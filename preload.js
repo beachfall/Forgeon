@@ -17,7 +17,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     
     // File operations
-    selectGgufFile: () => ipcRenderer.invoke('select-gguf-file'),
+    selectGGUFFile: () => ipcRenderer.invoke('select-gguf-file'),
     readGgufFile: (filePath) => ipcRenderer.invoke('read-gguf-file', filePath),
     openModelsFolder: () => ipcRenderer.invoke('open-models-folder'),
     scanModelsFolder: () => ipcRenderer.invoke('scan-models-folder'),

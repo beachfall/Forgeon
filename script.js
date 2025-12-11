@@ -345,6 +345,23 @@ const Utils = {
         });
     },
     
+    // Returns true if the provided date (date-only or datetime) is before today (local date)
+    isDateBeforeToday(dateString) {
+        if (!dateString) return false;
+        let d;
+        if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = dateString.split('-').map(Number);
+            d = new Date(year, month - 1, day);
+        } else {
+            d = new Date(dateString);
+        }
+        if (isNaN(d)) return false;
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        d.setHours(0,0,0,0);
+        return d < today;
+    },
+    
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
@@ -410,17 +427,72 @@ const Utils = {
         html += '</div></div>';
         return html;
     },
+
+    // Render combined related + referenced-by list for a single consolidated view
+    renderConnections(item) {
+        let itemObj = item;
+        if (!itemObj || !itemObj.id) {
+            // If caller passed an id instead of object, resolve it
+            const id = item; // maybe an id
+            itemObj = RelationshipManager.findItemById(id) || {};
+        }
+
+        const outgoing = itemObj.relatedItems || [];
+        const incoming = RelationshipManager.getReferencedBy(itemObj.id) || [];
+
+        const map = {};
+
+        outgoing.forEach(rel => {
+            const id = rel.id;
+            const type = rel.type;
+            const found = RelationshipManager.findItem(id, type);
+            if (!found) return;
+            map[id] = map[id] || { item: found, outgoing: false, incoming: false };
+            map[id].outgoing = true;
+        });
+
+        incoming.forEach(ref => {
+            const id = ref.id;
+            const type = ref.type;
+            const found = RelationshipManager.findItem(id, type);
+            if (!found) return;
+            map[id] = map[id] || { item: found, outgoing: false, incoming: false };
+            map[id].incoming = true;
+        });
+
+        const entries = Object.values(map);
+        if (entries.length === 0) return '';
+
+        const chips = entries.map(e => {
+            let dirIcon = '';
+            if (e.outgoing && e.incoming) dirIcon = '↔';
+            else if (e.outgoing) dirIcon = '→';
+            else if (e.incoming) dirIcon = '←';
+            return `
+                <div class="related-item-chip" onclick="RelationshipManager.navigateToItem('${e.item.id}', '${e.item.type}')">
+                    <span class="chip-icon">${e.item.icon || ''}</span>
+                    <span class="chip-name">${this.escapeHtml(e.item.name)} ${dirIcon ? `<span class="chip-dir">${dirIcon}</span>` : ''}</span>
+                    <span class="chip-type">${this.escapeHtml(e.item.category)}</span>
+                </div>
+            `;
+        }).join('');
+
+        return `<div class="related-items-section"><div class="related-items-header"><h4><img src="icons/misc/link.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Related Items</h4></div><div class="related-items-list">${chips}</div></div>`;
+    },
     
-    // Render referenced-by section
-    renderReferencedBy(itemId) {
-        const references = RelationshipManager.getReferencedBy(itemId);
-        
+    // Render referenced-by section (optional excludeIds to avoid duplicates)
+    renderReferencedBy(itemId, excludeIds = []) {
+        let references = RelationshipManager.getReferencedBy(itemId) || [];
+        if (excludeIds && excludeIds.length > 0) {
+            references = references.filter(r => !excludeIds.includes(r.id));
+        }
+
         if (references.length === 0) {
             return '';
         }
-        
+
         let html = '<div class="referenced-by-section"><h4><img src="icons/status/pin.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Referenced By</h4><div class="referenced-by-list">';
-        
+
         references.forEach(item => {
             html += `
                 <div class="related-item-chip" onclick="RelationshipManager.navigateToItem('${item.id}', '${item.type}')">
@@ -430,7 +502,7 @@ const Utils = {
                 </div>
             `;
         });
-        
+
         html += '</div></div>';
         return html;
     },
@@ -1788,7 +1860,7 @@ const Dashboard = {
     refresh() {
         // Update statistics
         const activeTasks = AppState.tasks.filter(t => !t.completed).length;
-        const overdueTasks = AppState.tasks.filter(t => !t.completed && t.dueDate && new Date(t.dueDate) < new Date()).length;
+        const overdueTasks = AppState.tasks.filter(t => !t.completed && t.dueDate && Utils.isDateBeforeToday(t.dueDate)).length;
         document.getElementById('activeTasks').textContent = activeTasks;
         if (overdueTasks > 0) {
             document.getElementById('activeTasks').innerHTML = `${activeTasks} <span style="color: var(--danger-color); font-size: 0.8em;">(${overdueTasks} overdue)</span>`;
@@ -1882,6 +1954,47 @@ const Dashboard = {
                 remindersByDate[dateKey].push(note);
             }
         });
+
+        // Get tasks due in this month (for dot indicators)
+        const tasksByDate = {};
+        AppState.tasks.forEach(task => {
+            if (!task.dueDate || task.completed) return;
+            // Support date-only and datetime formats
+            const dateOnly = (typeof task.dueDate === 'string' && task.dueDate.match(/^\d{4}-\d{2}-\d{2}$/));
+            let y,m,d;
+            if (dateOnly) {
+                [y,m,d] = task.dueDate.split('-').map(Number);
+            } else {
+                const dt = new Date(task.dueDate);
+                if (isNaN(dt)) return;
+                y = dt.getFullYear(); m = dt.getMonth() + 1; d = dt.getDate();
+            }
+            if (y === this.currentCalendarYear && m - 1 === this.currentCalendarMonth) {
+                const dateKey = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                if (!tasksByDate[dateKey]) tasksByDate[dateKey] = [];
+                tasksByDate[dateKey].push(task);
+            }
+        });
+
+        // Get milestones due in this month (for dot indicators)
+        const milestonesByDate = {};
+        AppState.milestones.forEach(milestone => {
+            if (!milestone.dueDate || milestone.completed) return;
+            const dateOnly = (typeof milestone.dueDate === 'string' && milestone.dueDate.match(/^\d{4}-\d{2}-\d{2}$/));
+            let y,m,d;
+            if (dateOnly) {
+                [y,m,d] = milestone.dueDate.split('-').map(Number);
+            } else {
+                const dt = new Date(milestone.dueDate);
+                if (isNaN(dt)) return;
+                y = dt.getFullYear(); m = dt.getMonth() + 1; d = dt.getDate();
+            }
+            if (y === this.currentCalendarYear && m - 1 === this.currentCalendarMonth) {
+                const dateKey = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                if (!milestonesByDate[dateKey]) milestonesByDate[dateKey] = [];
+                milestonesByDate[dateKey].push(milestone);
+            }
+        });
         
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -1901,6 +2014,8 @@ const Dashboard = {
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${this.currentCalendarYear}-${String(this.currentCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const reminders = remindersByDate[dateStr] || [];
+            const tasksForDay = tasksByDate[dateStr] || [];
+            const milestonesForDay = milestonesByDate[dateStr] || [];
             const isToday = dateStr === todayStr;
             const hasReminders = reminders.length > 0;
             const hasOverdue = reminders.some(n => !n.reminderDismissed && new Date(`${n.reminderDate}T${n.reminderTime || '00:00'}`) < new Date());
@@ -1910,6 +2025,7 @@ const Dashboard = {
                      onclick="Dashboard.showDayReminders('${dateStr}')">
                     <span class="day-number">${day}</span>
                     ${hasReminders ? `<span class="reminder-count">${reminders.length}</span>` : ''}
+                    ${ (tasksForDay.length + milestonesForDay.length) > 0 ? `<div class="calendar-dots">${([...tasksForDay, ...milestonesForDay].slice(0,5)).map(item => `<span class="dot ${item.hasOwnProperty('progress') ? 'milestone' : 'task'}"></span>`).join('')}${(tasksForDay.length + milestonesForDay.length)>5?`<span class="more">+${(tasksForDay.length + milestonesForDay.length)-5}</span>`:''}</div>` : ''}
                 </div>
             `;
         }
@@ -1923,7 +2039,29 @@ const Dashboard = {
             note.reminderEnabled && note.reminderDate === dateStr && !note.archived
         );
         
-        if (reminders.length === 0) return;
+        // Also collect tasks and milestones for this day so users can see everything
+        const tasksOnDay = AppState.tasks.filter(task => {
+            if (!task.dueDate || task.completed) return false;
+            const dateOnly = (typeof task.dueDate === 'string' && task.dueDate.match(/^\d{4}-\d{2}-\d{2}$/));
+            if (dateOnly) return task.dueDate === dateStr;
+            const dt = new Date(task.dueDate);
+            if (isNaN(dt)) return false;
+            const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+            return key === dateStr;
+        });
+
+        const milestonesOnDay = AppState.milestones.filter(m => {
+            const d = m.dueDate || m.targetDate;
+            if (!d || m.completed) return false;
+            const dateOnly = (typeof d === 'string' && d.match(/^\d{4}-\d{2}-\d{2}$/));
+            if (dateOnly) return d === dateStr;
+            const dt = new Date(d);
+            if (isNaN(dt)) return false;
+            const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+            return key === dateStr;
+        });
+
+        if (reminders.length === 0 && tasksOnDay.length === 0 && milestonesOnDay.length === 0) return;
         
         const [year, month, day] = dateStr.split('-').map(Number);
         const date = new Date(year, month - 1, day);
@@ -1956,12 +2094,42 @@ const Dashboard = {
                 </div>
             `;
         }).join('');
+
+        const tasksHtml = tasksOnDay.map(task => {
+            return `
+                <div class="day-reminder-item">
+                    <div class="day-reminder-header">
+                        <h4>${Utils.escapeHtml(task.title)}</h4>
+                        <span class="reminder-time">${task.dueDate}</span>
+                    </div>
+                    <div class="day-reminder-actions">
+                        <button class="btn btn-small btn-secondary" onclick="event.stopPropagation(); Dashboard.openTask('${task.id}')">Edit Task</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        const milestonesHtml = milestonesOnDay.map(ms => {
+            return `
+                <div class="day-reminder-item">
+                    <div class="day-reminder-header">
+                        <h4>${Utils.escapeHtml(ms.title)}</h4>
+                        <span class="reminder-time">${ms.dueDate || ms.targetDate || ''}</span>
+                    </div>
+                    <div class="day-reminder-actions">
+                        <button class="btn btn-small btn-secondary" onclick="event.stopPropagation(); Dashboard.openMilestone('${ms.id}')">Open Milestone</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
         
         const modalHtml = `
             <div class="day-reminders-modal">
                 <h3>Reminders for ${formattedDate}</h3>
                 <div class="day-reminders-list">
                     ${remindersHtml}
+                    ${tasksHtml ? `<h4 style="margin-top: 0.75rem;">Tasks</h4>${tasksHtml}` : ''}
+                    ${milestonesHtml ? `<h4 style="margin-top: 0.75rem;">Milestones</h4>${milestonesHtml}` : ''}
                 </div>
                 <div class="form-actions">
                     <button class="btn btn-secondary" onclick="Modal.close()">Close</button>
@@ -2076,7 +2244,8 @@ const Dashboard = {
         
         recentTasks.forEach(task => {
             const li = document.createElement('li');
-            const statusIcon = task.completed ? Utils.icon('actions/success', 'small') : (task.dueDate && new Date(task.dueDate) < new Date() ? Utils.icon('actions/warning', 'small') : Utils.icon('misc/hourglass', 'small'));
+            const isOverdue = task.dueDate && Utils.isDateBeforeToday(task.dueDate);
+            const statusIcon = task.completed ? Utils.icon('actions/success', 'small') : (isOverdue ? Utils.icon('actions/warning', 'small') : Utils.icon('misc/hourglass', 'small'));
             li.innerHTML = `${statusIcon} ${Utils.escapeHtml(task.title)}`;
             if (task.completed) {
                 li.style.opacity = '0.6';
@@ -3033,14 +3202,21 @@ const AssetTracker = {
                 ? asset.files.reduce((sum, f) => sum + (f.fileSize || 0), 0)
                 : (asset.fileSize || 0);
             
-            // Get linked items summary (use relatedItems for consistency)
+            // Get linked items summary (resolve items so we can show proper icons)
             const linkedSummary = asset.relatedItems && asset.relatedItems.length > 0
                 ? asset.relatedItems.map(link => {
-                    const icon = link.type === 'character' ? '👤' : 
-                                link.type === 'location' ? '📍' : 
-                                link.type === 'item' ? '📦' :
-                                link.type === 'quest' ? '🎯' : '🔗';
-                    return icon;
+                    const item = RelationshipManager.findItem(link.id, link.type);
+                    if (item) {
+                        return item.icon || (link.type === 'character' ? '👤' : 
+                                             link.type === 'location' ? '📍' : 
+                                             link.type === 'item' ? '📦' :
+                                             link.type === 'quest' ? '🎯' : '🔗');
+                    }
+                    // fallback if item can't be resolved
+                    return link.type === 'character' ? '👤' : 
+                           link.type === 'location' ? '📍' : 
+                           link.type === 'item' ? '📦' :
+                           link.type === 'quest' ? '🎯' : '🔗';
                 }).join(' ')
                 : '';
             
@@ -3956,16 +4132,7 @@ const ClassesManager = {
                             </div>
                         ` : ''}
                         
-                        ${classObj.relatedItems && classObj.relatedItems.length > 0 ? `
-                            <div class="class-section">
-                                <strong><img src="icons/misc/link.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Related Items:</strong>
-                                <div style="margin-top: 0.5rem;">
-                                    ${Utils.renderRelatedItems(classObj.relatedItems)}
-                                </div>
-                            </div>
-                        ` : ''}
-                        
-                        ${Utils.renderReferencedBy(classObj.id)}
+                        ${Utils.renderConnections(classObj)}
                     </div>
                 </div>
             `;
@@ -5313,35 +5480,7 @@ const MechanicsManager = {
                                 </div>
                             ` : ''}
                             
-                            ${mechanic.relatedItems && mechanic.relatedItems.length > 0 ? `
-                                <div class="related-items-display">
-                                    <strong><img src="icons/misc/link.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Related:</strong>
-                                    ${mechanic.relatedItems.map(rel => {
-                                        const item = RelationshipManager.findItemById(rel.id);
-                                        if (!item) return '';
-                                        return `<span class="relationship-chip clickable" data-id="${rel.id}" data-type="${rel.type}" title="Click to view ${rel.type}">
-                                            <span class="chip-type">${rel.type}</span>
-                                            ${Utils.escapeHtml(item.name)}
-                                        </span>`;
-                                    }).join('')}
-                                </div>
-                            ` : ''}
-                            
-                            ${(() => {
-                                const referencedBy = RelationshipManager.getReferencedBy(mechanic.id);
-                                if (referencedBy.length > 0) {
-                                    return `<div class="referenced-by-display">
-                                        <strong><img src="icons/story/location.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Referenced By:</strong>
-                                        ${referencedBy.map(ref => {
-                                            return `<span class="relationship-chip clickable" data-id="${ref.id}" data-type="${ref.type}" title="Click to view ${ref.type}">
-                                                <span class="chip-type">${ref.type}</span>
-                                                ${Utils.escapeHtml(ref.name)}
-                                            </span>`;
-                                        }).join('')}
-                                    </div>`;
-                                }
-                                return '';
-                            })()}
+                            ${Utils.renderConnections(mechanic)}
                             
                             <div class="mechanic-footer">
                                 <div class="mechanic-stats">
@@ -7048,31 +7187,7 @@ const StoryManager = {
                             <h3 class="act-title">${Utils.escapeHtml(act.title)}</h3>
                             ${act.description ? `<p class="act-description">${Utils.escapeHtml(act.description)}</p>` : ''}
                             <span class="scene-count">${act.scenes.length} scene${act.scenes.length !== 1 ? 's' : ''}</span>
-                            ${(() => {
-                                if (!act.relatedItems || act.relatedItems.length === 0) return '';
-                                const displayItems = act.relatedItems.slice(0, 3);
-                                const remaining = act.relatedItems.length - 3;
-                                return `<div class="act-meta">
-                                    <strong><img src="icons/misc/link.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Related:</strong> 
-                                    ${displayItems.map(rel => {
-                                        const item = RelationshipManager.findItemById(rel.id);
-                                        if (!item) return '';
-                                        return `<span class="character-tag clickable" data-id="${rel.id}" data-type="${rel.type}" title="Click to view ${rel.type}">${Utils.escapeHtml(item.name)}</span>`;
-                                    }).filter(i => i).join(' ')}
-                                    ${remaining > 0 ? `<span class="character-tag">+${remaining} more</span>` : ''}
-                                </div>`;
-                            })()}
-                            ${(() => {
-                                const referencedBy = RelationshipManager.getReferencedBy(act.id);
-                                if (referencedBy.length === 0) return '';
-                                const displayItems = referencedBy.slice(0, 3);
-                                const remaining = referencedBy.length - 3;
-                                return `<div class="act-meta">
-                                    <strong><img src="icons/status/pin.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Referenced by:</strong> 
-                                    ${displayItems.map(ref => `<span class="character-tag clickable" data-id="${ref.id}" data-type="${ref.type}" title="Click to view ${ref.type}">${Utils.escapeHtml(ref.name)}</span>`).join(' ')}
-                                    ${remaining > 0 ? `<span class="character-tag">+${remaining} more</span>` : ''}
-                                </div>`;
-                            })()}
+                            ${Utils.renderConnections(act)}
                         </div>
                         <div class="act-actions">
                             <button class="btn btn-small btn-primary" onclick="StoryManager.openAddSceneModal('${act.id}')">+ Add Scene</button>
@@ -7112,31 +7227,7 @@ const StoryManager = {
                                         const theme = AppState.story.themes.find(t => t.id === themeId);
                                         return theme ? `<span class="character-tag">${Utils.escapeHtml(theme.name)}</span>` : '';
                                     }).filter(t => t).join(' ')}</div>` : ''}
-                                    ${(() => {
-                                        if (!scene.relatedItems || scene.relatedItems.length === 0) return '';
-                                        const displayItems = scene.relatedItems.slice(0, 3);
-                                        const remaining = scene.relatedItems.length - 3;
-                                        return `<div class="scene-meta">
-                                            <strong><img src="icons/misc/link.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Related:</strong> 
-                                            ${displayItems.map(rel => {
-                                                const item = RelationshipManager.findItemById(rel.id);
-                                                if (!item) return '';
-                                                return `<span class="character-tag clickable" data-id="${rel.id}" data-type="${rel.type}" title="Click to view ${rel.type}">${Utils.escapeHtml(item.name)}</span>`;
-                                            }).filter(i => i).join(' ')}
-                                            ${remaining > 0 ? `<span class="character-tag">+${remaining} more</span>` : ''}
-                                        </div>`;
-                                    })()}
-                                    ${(() => {
-                                        const referencedBy = RelationshipManager.getReferencedBy(scene.id);
-                                        if (referencedBy.length === 0) return '';
-                                        const displayItems = referencedBy.slice(0, 3);
-                                        const remaining = referencedBy.length - 3;
-                                        return `<div class="scene-meta">
-                                            <strong><img src="icons/status/pin.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Referenced by:</strong> 
-                                            ${displayItems.map(ref => `<span class="character-tag clickable" data-id="${ref.id}" data-type="${ref.type}" title="Click to view ${ref.type}">${Utils.escapeHtml(ref.name)}</span>`).join(' ')}
-                                            ${remaining > 0 ? `<span class="character-tag">+${remaining} more</span>` : ''}
-                                        </div>`;
-                                    })()}
+                                    ${Utils.renderConnections(scene)}
                                     ${scene.dialogue ? `
                                         <details class="scene-dialogue">
                                             <summary>Dialogue/Notes</summary>
@@ -8505,40 +8596,7 @@ const StoryManager = {
                         <span class="asset-count">${linkedAssets.length}</span>
                     </div>
                 ` : ''}
-                ${(() => {
-                    const nonClassRelatedItems = char.relatedItems ? char.relatedItems.filter(rel => rel.type !== 'class') : [];
-                    if (nonClassRelatedItems.length > 0) {
-                        return `<div class="related-items-display">
-                            <strong><img src="icons/misc/link.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Related:</strong>
-                            ${nonClassRelatedItems.slice(0, 3).map(rel => {
-                                const item = RelationshipManager.findItemById(rel.id);
-                                if (!item) return '';
-                                return `<span class="relationship-chip-small clickable" data-id="${rel.id}" data-type="${rel.type}" title="Click to view ${rel.type}">
-                                    <span class="chip-type">${rel.type}</span>
-                                    ${Utils.escapeHtml(item.name)}
-                                </span>`;
-                            }).join('')}
-                            ${nonClassRelatedItems.length > 3 ? `<span class="more-count">+${nonClassRelatedItems.length - 3}</span>` : ''}
-                        </div>`;
-                    }
-                    return '';
-                })()}
-                ${(() => {
-                    const referencedBy = RelationshipManager.getReferencedBy(char.id);
-                    if (referencedBy.length > 0) {
-                        return `<div class="referenced-by-display">
-                            <strong><img src="icons/story/location.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Referenced By:</strong>
-                            ${referencedBy.slice(0, 3).map(ref => {
-                                return `<span class="relationship-chip-small clickable" data-id="${ref.id}" data-type="${ref.type}" title="Click to view ${ref.type}">
-                                    <span class="chip-type">${ref.type}</span>
-                                    ${Utils.escapeHtml(ref.name)}
-                                </span>`;
-                            }).join('')}
-                            ${referencedBy.length > 3 ? `<span class="more-count">+${referencedBy.length - 3}</span>` : ''}
-                        </div>`;
-                    }
-                    return '';
-                })()}
+                ${Utils.renderConnections(char)}
                 <div class="character-card-footer">
                     ${char.goals ? '<span class="character-tag"><img src="icons/misc/gameplay.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Goals</span>' : ''}
                     ${char.fears ? '<span class="character-tag">⚠️ Fears</span>' : ''}
@@ -8836,39 +8894,7 @@ const StoryManager = {
                     </div>
                 ` : ''}
                 ${loc.connectedScenes && loc.connectedScenes.length > 0 ? `<div class="location-scenes"><img src="icons/story/location.svg" alt="" width="14" height="14" style="vertical-align: middle;"> ${loc.connectedScenes.length} connected scene(s)</div>` : ''}
-                ${(() => {
-                    if (loc.relatedItems && loc.relatedItems.length > 0) {
-                        return `<div class="related-items-display">
-                            <strong><img src="icons/misc/link.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Related:</strong>
-                            ${loc.relatedItems.slice(0, 3).map(rel => {
-                                const item = RelationshipManager.findItemById(rel.id);
-                                if (!item) return '';
-                                return `<span class="relationship-chip-small clickable" data-id="${rel.id}" data-type="${rel.type}" title="Click to view ${rel.type}">
-                                    <span class="chip-type">${rel.type}</span>
-                                    ${Utils.escapeHtml(item.name)}
-                                </span>`;
-                            }).join('')}
-                            ${loc.relatedItems.length > 3 ? `<span class="more-count">+${loc.relatedItems.length - 3}</span>` : ''}
-                        </div>`;
-                    }
-                    return '';
-                })()}
-                ${(() => {
-                    const referencedBy = RelationshipManager.getReferencedBy(loc.id);
-                    if (referencedBy.length > 0) {
-                        return `<div class="referenced-by-display">
-                            <strong><img src="icons/story/location.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Referenced By:</strong>
-                            ${referencedBy.slice(0, 3).map(ref => {
-                                return `<span class="relationship-chip-small clickable" data-id="${ref.id}" data-type="${ref.type}" title="Click to view ${ref.type}">
-                                    <span class="chip-type">${ref.type}</span>
-                                    ${Utils.escapeHtml(ref.name)}
-                                </span>`;
-                            }).join('')}
-                            ${referencedBy.length > 3 ? `<span class="more-count">+${referencedBy.length - 3}</span>` : ''}
-                        </div>`;
-                    }
-                    return '';
-                })()}
+                ${Utils.renderConnections(loc)}
             </div>
         `;
         }).join('');
@@ -9178,38 +9204,7 @@ const StoryManager = {
                                     <img src="icons/misc/lightbulb.svg" alt="" width="14" height="14" style="vertical-align: middle;"> ${event.themes.map(t => Utils.escapeHtml(t)).join(', ')}
                                 </div>
                             ` : ''}
-                            ${!event.isScene && event.relatedItems && event.relatedItems.length > 0 ? `
-                                <div class="related-items-display">
-                                    <strong><img src="icons/misc/link.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Related:</strong>
-                                    ${event.relatedItems.slice(0, 3).map(rel => {
-                                        const item = RelationshipManager.findItemById(rel.id);
-                                        if (!item) return '';
-                                        return `<span class="relationship-chip-small clickable" data-id="${rel.id}" data-type="${rel.type}" title="Click to view ${rel.type}">
-                                            <span class="chip-type">${rel.type}</span>
-                                            ${Utils.escapeHtml(item.name)}
-                                        </span>`;
-                                    }).join('')}
-                                    ${event.relatedItems.length > 3 ? `<span class="more-count">+${event.relatedItems.length - 3}</span>` : ''}
-                                </div>
-                            ` : ''}
-                            ${(() => {
-                                if (!event.isScene) {
-                                    const referencedBy = RelationshipManager.getReferencedBy(event.id);
-                                    if (referencedBy.length > 0) {
-                                        return `<div class="referenced-by-display">
-                                            <strong><img src="icons/story/location.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Referenced By:</strong>
-                                            ${referencedBy.slice(0, 3).map(ref => {
-                                                return `<span class="relationship-chip-small clickable" data-id="${ref.id}" data-type="${ref.type}" title="Click to view ${ref.type}">
-                                                    <span class="chip-type">${ref.type}</span>
-                                                    ${Utils.escapeHtml(ref.name)}
-                                                </span>`;
-                                            }).join('')}
-                                            ${referencedBy.length > 3 ? `<span class="more-count">+${referencedBy.length - 3}</span>` : ''}
-                                        </div>`;
-                                    }
-                                }
-                                return '';
-                            })()}
+                            ${Utils.renderConnections(event)}
                             ${event.isScene ? `<div class="timeline-scene-note">From ${Utils.escapeHtml(event.time)}</div>` : ''}
                         </div>
                     </div>
@@ -9560,39 +9555,7 @@ const StoryManager = {
                     </div>
                     ${conflict.description ? `<p>${Utils.escapeHtml(conflict.description)}</p>` : ''}
                     ${conflict.resolution ? `<div class="conflict-resolution">✓ ${Utils.escapeHtml(conflict.resolution.substring(0, 100))}${conflict.resolution.length > 100 ? '...' : ''}</div>` : ''}
-                    ${(() => {
-                        if (conflict.relatedItems && conflict.relatedItems.length > 0) {
-                            return `<div class="related-items-display">
-                                <strong><img src="icons/misc/link.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Related:</strong>
-                                ${conflict.relatedItems.slice(0, 3).map(rel => {
-                                    const item = RelationshipManager.findItemById(rel.id);
-                                    if (!item) return '';
-                                    return `<span class="relationship-chip-small clickable" data-id="${rel.id}" data-type="${rel.type}" title="Click to view ${rel.type}">
-                                        <span class="chip-type">${rel.type}</span>
-                                        ${Utils.escapeHtml(item.name)}
-                                    </span>`;
-                                }).join('')}
-                                ${conflict.relatedItems.length > 3 ? `<span class="more-count">+${conflict.relatedItems.length - 3}</span>` : ''}
-                            </div>`;
-                        }
-                        return '';
-                    })()}
-                    ${(() => {
-                        const referencedBy = RelationshipManager.getReferencedBy(conflict.id);
-                        if (referencedBy.length > 0) {
-                            return `<div class="referenced-by-display">
-                                <strong><img src="icons/story/location.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Referenced By:</strong>
-                                ${referencedBy.slice(0, 3).map(ref => {
-                                    return `<span class="relationship-chip-small clickable" data-id="${ref.id}" data-type="${ref.type}" title="Click to view ${ref.type}">
-                                        <span class="chip-type">${ref.type}</span>
-                                        ${Utils.escapeHtml(ref.name)}
-                                    </span>`;
-                                }).join('')}
-                                ${referencedBy.length > 3 ? `<span class="more-count">+${referencedBy.length - 3}</span>` : ''}
-                            </div>`;
-                        }
-                        return '';
-                    })()}
+                    ${Utils.renderConnections(conflict)}
                 </div>
             `).join('');
         }
@@ -9606,39 +9569,7 @@ const StoryManager = {
                     <h4><img src="icons/misc/lightbulb.svg" alt="" width="14" height="14" style="vertical-align: middle;"> ${Utils.escapeHtml(theme.title)}</h4>
                     ${theme.description ? `<p>${Utils.escapeHtml(theme.description)}</p>` : ''}
                     ${theme.examples ? `<div class="theme-examples"><img src="icons/status/pin.svg" alt="" width="14" height="14" style="vertical-align: middle;"> ${Utils.escapeHtml(theme.examples.substring(0, 100))}${theme.examples.length > 100 ? '...' : ''}</div>` : ''}
-                    ${(() => {
-                        if (theme.relatedItems && theme.relatedItems.length > 0) {
-                            return `<div class="related-items-display">
-                                <strong><img src="icons/misc/link.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Related:</strong>
-                                ${theme.relatedItems.slice(0, 3).map(rel => {
-                                    const item = RelationshipManager.findItemById(rel.id);
-                                    if (!item) return '';
-                                    return `<span class="relationship-chip-small clickable" data-id="${rel.id}" data-type="${rel.type}" title="Click to view ${rel.type}">
-                                        <span class="chip-type">${rel.type}</span>
-                                        ${Utils.escapeHtml(item.name)}
-                                    </span>`;
-                                }).join('')}
-                                ${theme.relatedItems.length > 3 ? `<span class="more-count">+${theme.relatedItems.length - 3}</span>` : ''}
-                            </div>`;
-                        }
-                        return '';
-                    })()}
-                    ${(() => {
-                        const referencedBy = RelationshipManager.getReferencedBy(theme.id);
-                        if (referencedBy.length > 0) {
-                            return `<div class="referenced-by-display">
-                                <strong><img src="icons/story/location.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Referenced By:</strong>
-                                ${referencedBy.slice(0, 3).map(ref => {
-                                    return `<span class="relationship-chip-small clickable" data-id="${ref.id}" data-type="${ref.type}" title="Click to view ${ref.type}">
-                                        <span class="chip-type">${ref.type}</span>
-                                        ${Utils.escapeHtml(ref.name)}
-                                    </span>`;
-                                }).join('')}
-                                ${referencedBy.length > 3 ? `<span class="more-count">+${referencedBy.length - 3}</span>` : ''}
-                            </div>`;
-                        }
-                        return '';
-                    })()}
+                    ${Utils.renderConnections(theme)}
                 </div>
             `).join('');
         }
@@ -14576,35 +14507,8 @@ const DocumentationExporter = {
     generateRelationships(itemId, itemType) {
         const item = RelationshipManager.getAllItems().find(i => i.id === itemId && i.type === itemType);
         if (!item) return '';
-        
-        const relatedItems = item.data.relatedItems || [];
-        const referencedBy = RelationshipManager.getReferencedBy(itemId);
-        
-        if (relatedItems.length === 0 && referencedBy.length === 0) return '';
-        
-        let html = '<div class="relationships"><h5><img src="icons/misc/link.svg" alt="" width="14" height="14" style="vertical-align: middle;"> Relationships</h5>';
-        
-        if (relatedItems.length > 0) {
-            html += '<div><strong>Links to:</strong><br>';
-            relatedItems.forEach(rel => {
-                const relItem = RelationshipManager.findItemById(rel.id);
-                if (relItem) {
-                    html += `<a href="#${rel.type}-${rel.id}" class="rel-link"><span class="rel-type">${rel.type}</span>${this.escape(relItem.name)}</a>`;
-                }
-            });
-            html += '</div>';
-        }
-        
-        if (referencedBy.length > 0) {
-            html += '<div style="margin-top: 10px;"><strong>Referenced by:</strong><br>';
-            referencedBy.forEach(ref => {
-                html += `<a href="#${ref.type}-${ref.id}" class="rel-link"><span class="rel-type">${ref.type}</span>${this.escape(ref.name)}</a>`;
-            });
-            html += '</div>';
-        }
-        
-        html += '</div>';
-        return html;
+        // Use the unified connections renderer for consistent display
+        return Utils.renderConnections(item.data || item);
     },
 
     escape(text) {

@@ -780,6 +780,46 @@ img.stat-icon {
     background: var(--danger-color);
 }
 
+/* Dots indicating number of tasks due on a date */
+.calendar-dots {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+}
+
+.calendar-dots .dot {
+    width: 6px;
+    height: 6px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.15) inset;
+    opacity: 0.95;
+}
+
+.calendar-dots .dot.task {
+    background: var(white);
+}
+
+.calendar-dots .dot.milestone {
+    background: var(white);
+}
+
+.calendar-dots .dot.completed {
+    background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-primary));
+    opacity: 0.85;
+}
+
+.calendar-dots .more {
+    font-size: 0.65rem;
+    color: var(--text-primary);
+    padding-left: 4px;
+}
+
 /* Day Reminders Modal */
 .day-reminders-modal {
     padding: 2rem;
@@ -3929,7 +3969,7 @@ input[type="file"]:focus {
     z-index: 10;
 }
 
-/* Story Map Toolbox */
+/* Story Map Toolbox 
 .story-map-toolbox {
     position: absolute;
     top: 20px;
@@ -3967,7 +4007,7 @@ input[type="file"]:focus {
 
 .story-map-toolbox::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
-}
+}*/
 
 .toolbox-title {
     font-size: 0.85rem;
@@ -4117,7 +4157,7 @@ input[type="file"]:focus {
     background: var(--border-color);
     margin: 4px 0;
 }
-END OF STORY MAP STYLES - DISABLED */
+
 
 /* =================================
    Search Result Animations & Keyboard Navigation
@@ -6157,6 +6197,12 @@ html {
     padding: 0.15rem 0.4rem;
     background-color: var(--bg-secondary);
     border-radius: 8px;
+}
+
+.related-item-chip .chip-dir {
+    margin-left: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
 }
 
 /* Referenced By Section */

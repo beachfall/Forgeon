@@ -3224,6 +3224,82 @@ input[type="file"]:focus {
     margin-top: auto;
 }
 
+/* Prototypes Modal Styles */
+.prototypes-modal {
+    max-width: 700px;
+}
+
+.prototypes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.prototype-item {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.prototype-header {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.prototype-name {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.prototype-link,
+.prototype-notes {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: inherit;
+}
+
+.prototype-notes {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.btn-icon-small {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.btn-icon-small:hover {
+    background: #c82333;
+    transform: scale(1.05);
+}
+
 /* Expanded Mechanic Card Styles */
 .mechanic-title-row {
     display: flex;

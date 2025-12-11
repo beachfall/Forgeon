@@ -2599,6 +2599,14 @@ const AssetTracker = {
                     assetData.files.push(fileData);
                 }
                 
+                // Sync bidirectional relationships
+                const oldRelatedItems = isEdit ? (assetToEdit.relatedItems || []) : [];
+                RelationshipManager.syncRelationships(
+                    { id: assetData.id, type: 'asset', name: assetData.name },
+                    oldRelatedItems,
+                    relatedItems
+                );
+                
                 if (isEdit) {
                     const index = AppState.assets.findIndex(a => a.id === assetToEdit.id);
                     AppState.assets[index] = assetData;
@@ -5160,7 +5168,7 @@ const MechanicsManager = {
     deleteMechanic(mechanicId) {
         const mechanicToDelete = AppState.mechanics.find(m => m.id === mechanicId);
         
-        if (RelationshipManager.confirmDeleteWithImpact(mechanicId, mechanicToDelete.name, 'mechanic')) {
+        RelationshipManager.confirmDeleteWithImpact(mechanicId, mechanicToDelete.name, 'mechanic', () => {
             AppState.mechanics = AppState.mechanics.filter(m => m.id !== mechanicId);
             AppState.save();
             
@@ -5171,7 +5179,7 @@ const MechanicsManager = {
             
             // Refresh other sections
             RelationshipManager.refreshAllSections();
-        }
+        });
     },
     
     render() {
@@ -5435,12 +5443,12 @@ const MilestonePlanner = {
     },
     
     deleteMilestone(milestoneId) {
-        if (confirm('Are you sure you want to delete this milestone?')) {
+        Utils.showConfirm('Are you sure you want to delete this milestone?', () => {
             AppState.milestones = AppState.milestones.filter(m => m.id !== milestoneId);
             AppState.save();
             this.render();
             Dashboard.refresh();
-        }
+        });
     },
     
     render() {
@@ -5763,14 +5771,14 @@ const NotesManager = {
         // Archive button
         if (isEdit) {
             document.getElementById('archiveNoteBtn').addEventListener('click', () => {
-                if (confirm('Archive this note? You can view archived notes later.')) {
+                Utils.showConfirm('Archive this note? You can view archived notes later.', () => {
                     noteToEdit.archived = true;
                     noteToEdit.modifiedAt = new Date().toISOString();
                     AppState.save();
                     this.render();
                     Modal.close();
                     this.showNotification('Note archived');
-                }
+                });
             });
         }
         
@@ -5915,10 +5923,10 @@ const NotesManager = {
         });
         
         document.getElementById('clearCanvas')?.addEventListener('click', () => {
-            if (confirm('Clear the entire canvas?')) {
+            Utils.showConfirm('Clear the entire canvas?', () => {
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-            }
+            });
         });
         
         // Drawing events
@@ -5985,7 +5993,7 @@ const NotesManager = {
     },
     
     deleteNote(noteId) {
-        if (confirm('Permanently delete this note? This cannot be undone.')) {
+        Utils.showConfirm('Permanently delete this note? This cannot be undone.', () => {
             AppState.notes = AppState.notes.filter(n => n.id !== noteId);
             AppState.save();
             
@@ -5998,7 +6006,7 @@ const NotesManager = {
             RelationshipManager.refreshAllSections();
             
             this.showNotification('Note deleted');
-        }
+        });
     },
     
     togglePin(noteId) {
@@ -6867,7 +6875,7 @@ const StoryManager = {
                     const checkboxHtml = `
                         <label class="checkbox-label">
                             <input type="checkbox" value="${newTheme.id}" checked>
-                            <span>${Utils.escapeHtml(newTheme.name)}</span>
+                            <span>${Utils.escapeHtml(newTheme.title)}</span>
                         </label>
                     `;
                     themesList.insertAdjacentHTML('beforeend', checkboxHtml);
@@ -6965,7 +6973,7 @@ const StoryManager = {
             });
         }
         
-        if (confirm(confirmMsg)) {
+        Utils.showConfirm(confirmMsg, () => {
             // Delete all scenes in the act first
             act.scenes.forEach(scene => {
                 // This will trigger cleanup for each scene
@@ -6982,7 +6990,7 @@ const StoryManager = {
             
             // Refresh other sections
             RelationshipManager.refreshAllSections();
-        }
+        });
     },
     
     deleteScene(actId, sceneId) {
@@ -6991,7 +6999,7 @@ const StoryManager = {
         
         const sceneToDelete = act.scenes.find(s => s.id === sceneId);
         
-        if (RelationshipManager.confirmDeleteWithImpact(sceneId, sceneToDelete.title, 'scene')) {
+        RelationshipManager.confirmDeleteWithImpact(sceneId, sceneToDelete.title, 'scene', () => {
             act.scenes = act.scenes.filter(s => s.id !== sceneId);
             AppState.save();
             
@@ -7002,7 +7010,7 @@ const StoryManager = {
             
             // Refresh other sections
             RelationshipManager.refreshAllSections();
-        }
+        });
     },
     
     moveScene(actId, sceneId, direction) {
@@ -8081,7 +8089,7 @@ const StoryManager = {
         
         if (isEdit) {
             document.getElementById('deleteCharacterBtn').addEventListener('click', () => {
-                if (RelationshipManager.confirmDeleteWithImpact(characterToEdit.id, characterToEdit.name, 'character')) {
+                RelationshipManager.confirmDeleteWithImpact(characterToEdit.id, characterToEdit.name, 'character', () => {
                     AppState.story.characters = AppState.story.characters.filter(c => c.id !== characterToEdit.id);
                     AppState.save();
                     
@@ -8093,7 +8101,7 @@ const StoryManager = {
                     
                     // Refresh other sections
                     RelationshipManager.refreshAllSections();
-                }
+                });
             });
         }
         
@@ -8249,6 +8257,7 @@ const StoryManager = {
                 arc: '',
                 relationships: '',
                 assetIds: [],
+                relatedItems: [],
                 createdAt: new Date().toISOString()
             };
             
@@ -8309,6 +8318,7 @@ const StoryManager = {
                 description: document.getElementById('quickLocDescription').value.trim(),
                 significance: '',
                 assetIds: [],
+                relatedItems: [],
                 createdAt: new Date().toISOString()
             };
             
@@ -8368,6 +8378,7 @@ const StoryManager = {
                 type: document.getElementById('quickConflictType').value,
                 description: document.getElementById('quickConflictDescription').value.trim(),
                 resolution: '',
+                relatedItems: [],
                 createdAt: new Date().toISOString()
             };
             
@@ -8412,9 +8423,10 @@ const StoryManager = {
             
             const themeData = {
                 id: Utils.generateId(),
-                name: document.getElementById('quickThemeName').value.trim(),
+                title: document.getElementById('quickThemeName').value.trim(),
                 description: document.getElementById('quickThemeDescription').value.trim(),
                 examples: '',
+                relatedItems: [],
                 createdAt: new Date().toISOString()
             };
             
@@ -8698,7 +8710,7 @@ const StoryManager = {
         
         if (isEdit) {
             document.getElementById('deleteLocationBtn').addEventListener('click', () => {
-                if (RelationshipManager.confirmDeleteWithImpact(locationToEdit.id, locationToEdit.name, 'location')) {
+                RelationshipManager.confirmDeleteWithImpact(locationToEdit.id, locationToEdit.name, 'location', () => {
                     AppState.story.locations = AppState.story.locations.filter(l => l.id !== locationToEdit.id);
                     AppState.save();
                     
@@ -8710,7 +8722,7 @@ const StoryManager = {
                     
                     // Refresh other sections
                     RelationshipManager.refreshAllSections();
-                }
+                });
             });
         }
         
@@ -8969,7 +8981,7 @@ const StoryManager = {
         
         if (isEdit) {
             document.getElementById('deleteEventBtn').addEventListener('click', () => {
-                if (RelationshipManager.confirmDeleteWithImpact(eventToEdit.id, eventToEdit.title, 'timeline')) {
+                RelationshipManager.confirmDeleteWithImpact(eventToEdit.id, eventToEdit.title, 'timeline', () => {
                     AppState.story.timeline = AppState.story.timeline.filter(e => e.id !== eventToEdit.id);
                     AppState.save();
                     
@@ -8981,7 +8993,7 @@ const StoryManager = {
                     
                     // Refresh other sections
                     RelationshipManager.refreshAllSections();
-                }
+                });
             });
         }
         
@@ -9312,7 +9324,7 @@ const StoryManager = {
         
         if (isEdit) {
             document.getElementById('deleteConflictBtn').addEventListener('click', () => {
-                if (RelationshipManager.confirmDeleteWithImpact(conflictToEdit.id, conflictToEdit.title, 'conflict')) {
+                RelationshipManager.confirmDeleteWithImpact(conflictToEdit.id, conflictToEdit.title, 'conflict', () => {
                     AppState.story.conflicts = AppState.story.conflicts.filter(c => c.id !== conflictToEdit.id);
                     AppState.save();
                     
@@ -9324,7 +9336,7 @@ const StoryManager = {
                     
                     // Refresh other sections
                     RelationshipManager.refreshAllSections();
-                }
+                });
             });
         }
         
@@ -9465,7 +9477,7 @@ const StoryManager = {
         
         if (isEdit) {
             document.getElementById('deleteThemeBtn').addEventListener('click', () => {
-                if (RelationshipManager.confirmDeleteWithImpact(themeToEdit.id, themeToEdit.title, 'theme')) {
+                RelationshipManager.confirmDeleteWithImpact(themeToEdit.id, themeToEdit.title, 'theme', () => {
                     AppState.story.themes = AppState.story.themes.filter(t => t.id !== themeToEdit.id);
                     AppState.save();
                     
@@ -9477,7 +9489,7 @@ const StoryManager = {
                     
                     // Refresh other sections
                     RelationshipManager.refreshAllSections();
-                }
+                });
             });
         }
         
@@ -9769,7 +9781,7 @@ const StoryManager = {
         // Handle delete
         if (isEdit) {
             document.getElementById('deleteItemBtn').addEventListener('click', () => {
-                if (confirm('Are you sure you want to delete this item?')) {
+                Utils.showConfirm('Are you sure you want to delete this item?', () => {
                     const index = AppState.story.items.findIndex(i => i.id === itemToEdit.id);
                     if (index !== -1) {
                         // Clean up relationships
@@ -9784,7 +9796,7 @@ const StoryManager = {
                         RelationshipManager.refreshAllSections();
                         Modal.close();
                     }
-                }
+                });
             });
         }
         
@@ -10141,11 +10153,11 @@ const QuestManager = {
             list.querySelectorAll('[data-remove-objective]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const index = parseInt(btn.dataset.removeObjective);
-                    if (confirm('Remove this objective?')) {
+                    Utils.showConfirm('Remove this objective?', () => {
                         objectives.splice(index, 1);
                         this.tempObjectives = objectives;
                         renderObjectives();
-                    }
+                    });
                 });
             });
         };
@@ -10300,25 +10312,27 @@ const QuestManager = {
     },
     
     removeObjective(index) {
-        if (this.tempObjectives && confirm('Remove this objective?')) {
-            this.tempObjectives.splice(index, 1);
-            const list = document.getElementById('questObjectivesList');
-            if (this.tempObjectives.length === 0) {
-                list.innerHTML = '<p class="empty-state-small">No objectives yet. Add objectives for this quest.</p>';
-            } else {
-                list.innerHTML = this.tempObjectives.map((obj, i) => `
-                    <div class="objective-item">
-                        <div class="objective-content">
-                            <span class="objective-number">${i + 1}.</span>
-                            <span class="objective-text">${Utils.escapeHtml(obj.description)}</span>
-                            ${obj.required ? '<span class="badge badge-required">Required</span>' : '<span class="badge badge-optional">Optional</span>'}
+        if (this.tempObjectives) {
+            Utils.showConfirm('Remove this objective?', () => {
+                this.tempObjectives.splice(index, 1);
+                const list = document.getElementById('questObjectivesList');
+                if (this.tempObjectives.length === 0) {
+                    list.innerHTML = '<p class="empty-state-small">No objectives yet. Add objectives for this quest.</p>';
+                } else {
+                    list.innerHTML = this.tempObjectives.map((obj, i) => `
+                        <div class="objective-item">
+                            <div class="objective-content">
+                                <span class="objective-number">${i + 1}.</span>
+                                <span class="objective-text">${Utils.escapeHtml(obj.description)}</span>
+                                ${obj.required ? '<span class="badge badge-required">Required</span>' : '<span class="badge badge-optional">Optional</span>'}
+                            </div>
+                            <button type="button" class="btn btn-icon" onclick="QuestManager.removeObjective(${i})">
+                                <img src="icons/actions/delete.svg" alt="" width="14" height="14">
+                            </button>
                         </div>
-                        <button type="button" class="btn btn-icon" onclick="QuestManager.removeObjective(${i})">
-                            <img src="icons/actions/delete.svg" alt="" width="14" height="14">
-                        </button>
-                    </div>
-                `).join('');
-            }
+                    `).join('');
+                }
+            });
         }
     },
     
@@ -10961,23 +10975,27 @@ const StoryMap = {
                 QuestManager.deleteQuest(node.id);
             } else if (node.type === 'character') {
                 const character = AppState.story.characters.find(c => c.id === node.id);
-                if (character && RelationshipManager.confirmDeleteWithImpact(node.id, node.name, 'character')) {
-                    AppState.story.characters = AppState.story.characters.filter(c => c.id !== node.id);
-                    AppState.save();
-                    RelationshipManager.cleanupOrphanedRelationships();
-                    this.loadMapNodes(); // Already calls buildQuestConnections
-                    this.render();
-                    if (StoryManager.renderCharacters) StoryManager.renderCharacters();
+                if (character) {
+                    RelationshipManager.confirmDeleteWithImpact(node.id, node.name, 'character', () => {
+                        AppState.story.characters = AppState.story.characters.filter(c => c.id !== node.id);
+                        AppState.save();
+                        RelationshipManager.cleanupOrphanedRelationships();
+                        this.loadMapNodes(); // Already calls buildQuestConnections
+                        this.render();
+                        if (StoryManager.renderCharacters) StoryManager.renderCharacters();
+                    });
                 }
             } else if (node.type === 'location') {
                 const location = AppState.story.locations.find(l => l.id === node.id);
-                if (location && RelationshipManager.confirmDeleteWithImpact(node.id, node.name, 'location')) {
-                    AppState.story.locations = AppState.story.locations.filter(l => l.id !== node.id);
-                    AppState.save();
-                    RelationshipManager.cleanupOrphanedRelationships();
-                    this.loadMapNodes(); // Already calls buildQuestConnections
-                    this.render();
-                    if (StoryManager.renderLocations) StoryManager.renderLocations();
+                if (location) {
+                    RelationshipManager.confirmDeleteWithImpact(node.id, node.name, 'location', () => {
+                        AppState.story.locations = AppState.story.locations.filter(l => l.id !== node.id);
+                        AppState.save();
+                        RelationshipManager.cleanupOrphanedRelationships();
+                        this.loadMapNodes(); // Already calls buildQuestConnections
+                        this.render();
+                        if (StoryManager.renderLocations) StoryManager.renderLocations();
+                    });
                 }
             }
         } else if (action === 'zoom') {
@@ -15539,20 +15557,20 @@ const TemplateManager = {
     },
     
     deleteTemplate(templateId) {
-        if (!confirm('Delete this template?')) return;
-        
-        this.templates = this.templates.filter(t => t.id !== templateId);
-        this.saveTemplates();
-        
-        // Refresh browser if open
-        const modal = document.getElementById('modalBody');
-        if (modal && modal.querySelector('.template-browser')) {
-            // Re-open browser to refresh
-            setTimeout(() => {
-                const type = this.templates[0]?.type || 'class';
-                this.openTemplateBrowser(type);
-            }, 10);
-        }
+        Utils.showConfirm('Delete this template?', () => {
+            this.templates = this.templates.filter(t => t.id !== templateId);
+            this.saveTemplates();
+            
+            // Refresh browser if open
+            const modal = document.getElementById('modalBody');
+            if (modal && modal.querySelector('.template-browser')) {
+                // Re-open browser to refresh
+                setTimeout(() => {
+                    const type = this.templates[0]?.type || 'class';
+                    this.openTemplateBrowser(type);
+                }, 10);
+            }
+        });
     },
     
     generateId() {
@@ -15992,12 +16010,10 @@ const BulkOperations = {
     bulkDelete() {
         if (this.selectedItems.size === 0) return;
         
-        if (!confirm(`Are you sure you want to delete ${this.selectedItems.size} items? This cannot be undone.`)) {
-            return;
-        }
-        
-        // Show impact analysis first
-        this.showDeleteImpact();
+        Utils.showConfirm(`Are you sure you want to delete ${this.selectedItems.size} items? This cannot be undone.`, () => {
+            // Show impact analysis first
+            this.showDeleteImpact();
+        });
     },
     
     showDeleteImpact() {
@@ -16354,9 +16370,9 @@ const AIAssistant = {
         
         // Clear history
         clearBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to clear the entire conversation history? This cannot be undone.')) {
+            Utils.showConfirm('Are you sure you want to clear the entire conversation history? This cannot be undone.', () => {
                 this.clearHistory();
-            }
+            });
         });
         
         // Initialize settings modal
@@ -18524,8 +18540,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
     
     window.confirm = function(message) {
-        console.warn('Blocking confirm() called. Use Utils.showConfirm() instead for better UX.');
-        // For backward compatibility, we'll still allow it but log a warning
+        console.warn('⚠️ Legacy confirm() called. Use Utils.showConfirm() for better UX.');
+        console.warn('Message:', message);
+        // For safety, still allow the original confirm as fallback
         return window._originalConfirm(message);
     };
     
